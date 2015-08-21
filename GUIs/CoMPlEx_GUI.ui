@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <class>CoMPlEx_GUI</class>
+ <widget class="QMainWindow" name="CoMPlEx_GUI">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1012</width>
-    <height>692</height>
+    <width>1072</width>
+    <height>748</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,7 +25,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1012</width>
+     <width>1072</width>
      <height>25</height>
     </rect>
    </property>
@@ -47,25 +47,21 @@
     <property name="title">
      <string>&amp;View</string>
     </property>
-    <widget class="QMenu" name="menu_Functions">
-     <property name="title">
-      <string>&amp;Functions</string>
-     </property>
-     <addaction name="actionWhole_dock"/>
-     <addaction name="separator"/>
-     <addaction name="action_Engage"/>
-     <addaction name="action_Calibration"/>
-     <addaction name="action_FvsD"/>
-     <addaction name="action_Custom_FvsD"/>
-    </widget>
     <addaction name="action_QPD_and_piezo"/>
-    <addaction name="menu_Functions"/>
     <addaction name="action_Motors"/>
+    <addaction name="action_Settings"/>
+    <addaction name="action_Remote"/>
    </widget>
    <addaction name="menu_Config"/>
    <addaction name="menu_View"/>
   </widget>
-  <widget class="QDockWidget" name="dockWidget">
+  <widget class="QDockWidget" name="qpdNpiezoDock">
+   <property name="maximumSize">
+    <size>
+     <width>524287</width>
+     <height>524287</height>
+    </size>
+   </property>
    <property name="features">
     <set>QDockWidget::AllDockWidgetFeatures</set>
    </property>
@@ -275,7 +271,19 @@
     </layout>
    </widget>
   </widget>
-  <widget class="QDockWidget" name="dockWidget_2">
+  <widget class="QDockWidget" name="motorsDock">
+   <property name="minimumSize">
+    <size>
+     <width>229</width>
+     <height>229</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>229</width>
+     <height>229</height>
+    </size>
+   </property>
    <property name="features">
     <set>QDockWidget::AllDockWidgetFeatures</set>
    </property>
@@ -291,7 +299,7 @@
    <widget class="QWidget" name="dockWidgetContents_2">
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
-      <widget class="QTabWidget" name="tabWidget">
+      <widget class="QTabWidget" name="motorTabs">
        <property name="tabPosition">
         <enum>QTabWidget::South</enum>
        </property>
@@ -304,11 +312,11 @@
        <property name="documentMode">
         <bool>true</bool>
        </property>
-       <widget class="QWidget" name="tab_2">
+       <widget class="QWidget" name="motCtrlTab">
         <attribute name="title">
          <string>Controls</string>
         </attribute>
-        <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="3,1">
+        <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="3,0,1">
          <item>
           <layout class="QGridLayout" name="gridLayout_3" columnstretch="1,1,1">
            <item row="0" column="1">
@@ -411,7 +419,24 @@
              </property>
             </widget>
            </item>
+           <item row="1" column="1">
+            <widget class="QLabel" name="label_5">
+             <property name="text">
+              <string>XY</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
           </layout>
+         </item>
+         <item>
+          <widget class="Line" name="line">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+          </widget>
          </item>
          <item>
           <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -437,6 +462,16 @@
              </property>
              <property name="text">
               <string>ᐃ</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_6">
+             <property name="text">
+              <string>z</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
              </property>
             </widget>
            </item>
@@ -478,7 +513,7 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="tab">
+       <widget class="QWidget" name="motSetTab">
         <attribute name="title">
          <string>Settings</string>
         </attribute>
@@ -488,7 +523,7 @@
     </layout>
    </widget>
   </widget>
-  <widget class="QDockWidget" name="dockWidget_3">
+  <widget class="QDockWidget" name="settingsDock">
    <property name="features">
     <set>QDockWidget::AllDockWidgetFeatures</set>
    </property>
@@ -496,7 +531,7 @@
     <set>Qt::RightDockWidgetArea</set>
    </property>
    <property name="windowTitle">
-    <string>Functions</string>
+    <string>Settings</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>2</number>
@@ -504,34 +539,168 @@
    <widget class="QWidget" name="dockWidgetContents_3">
     <layout class="QVBoxLayout" name="verticalLayout_4">
      <item>
-      <widget class="QTabWidget" name="tabWidget_2">
+      <widget class="QTabWidget" name="functionsTabs">
        <property name="currentIndex">
         <number>0</number>
        </property>
        <property name="tabsClosable">
-        <bool>true</bool>
+        <bool>false</bool>
        </property>
-       <widget class="QWidget" name="tab_3">
+       <widget class="QWidget" name="fbTab">
         <attribute name="title">
-         <string>Engage</string>
+         <string>Feedback</string>
         </attribute>
        </widget>
-       <widget class="QWidget" name="tab_4">
+       <widget class="QWidget" name="calibQpdTab">
         <attribute name="title">
-         <string>Calibration</string>
+         <string>QPD Calibration</string>
         </attribute>
        </widget>
-       <widget class="QWidget" name="tab_5">
+       <widget class="QWidget" name="calibKTab">
+        <attribute name="title">
+         <string>K Calibration</string>
+        </attribute>
+       </widget>
+       <widget class="QWidget" name="fvsdTab">
         <attribute name="title">
          <string>FvsD</string>
         </attribute>
        </widget>
-       <widget class="QWidget" name="tab_6">
+       <widget class="QWidget" name="custFvsdTab">
         <attribute name="title">
          <string>Custom FvsD</string>
         </attribute>
        </widget>
+       <widget class="QWidget" name="mapTab">
+        <attribute name="title">
+         <string>Map</string>
+        </attribute>
+       </widget>
       </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="remoteDock">
+   <property name="minimumSize">
+    <size>
+     <width>207</width>
+     <height>118</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>524287</width>
+     <height>118</height>
+    </size>
+   </property>
+   <property name="windowTitle">
+    <string>Remote</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_4">
+    <layout class="QVBoxLayout" name="verticalLayout_5">
+     <item>
+      <widget class="QComboBox" name="comboBox">
+       <item>
+        <property name="text">
+         <string>Engage</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Calibrate QPD</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Calibrate K</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Single Curve</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Single Custom Curve</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Curve Map</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Custom Curve Map</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_5">
+       <item>
+        <widget class="QPushButton" name="pushButton_9">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>40</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>40</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="text">
+          <string> 	▶</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_10">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>40</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>40</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>■ </string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QProgressBar" name="progressBar_7">
+         <property name="value">
+          <number>24</number>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
    </widget>
@@ -545,6 +714,9 @@
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>&amp;QPD and piezo</string>
    </property>
@@ -553,40 +725,11 @@
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>&amp;Motors</string>
-   </property>
-  </action>
-  <action name="action_Engage">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Engage</string>
-   </property>
-  </action>
-  <action name="action_Calibration">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Calibration</string>
-   </property>
-  </action>
-  <action name="action_FvsD">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;FvsD</string>
-   </property>
-  </action>
-  <action name="action_Custom_FvsD">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Custom FvsD</string>
    </property>
   </action>
   <action name="action_General_config">
@@ -599,12 +742,26 @@
     <string>&amp;Controls config</string>
    </property>
   </action>
-  <action name="actionWhole_dock">
+  <action name="action_Settings">
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
-    <string>Whole dock</string>
+    <string>&amp;Settings</string>
+   </property>
+  </action>
+  <action name="action_Remote">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Remote</string>
    </property>
   </action>
  </widget>
