@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/ettore/GIT/CoMPlEx/GUIs/hwConfig_dialog.ui'
 #
-# Created: Fri Aug 21 18:17:34 2015
+# Created: Mon Aug 24 17:59:48 2015
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
