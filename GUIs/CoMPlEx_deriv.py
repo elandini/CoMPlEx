@@ -1,7 +1,16 @@
 from CoMPlEx_GUI import *
 from hwConfig_deriv import *
 
-from PyQt4.QtGui import QDialog
+from threading import Thread
+
+from PyQt4.QtGui import QDialog, QFileDialog
+import pyqtgraph as pg
+
+from random import random
+from time import sleep
+
+pg.setConfigOption('background', 'w')
+pg.setConfigOption('foreground', 'k')
 
 class CoMPlEx_main(Ui_CoMPlEx_GUI):
     
@@ -20,7 +29,8 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
                                 self.qpdNpiezoDock:[self.action_QPD_and_piezo,'isVisible','setChecked','changed']}
         
         self.actionNdocksConnections()
-                   
+        self.genericConnetions()
+    
     
     def dockMng(self):
         
@@ -38,12 +48,47 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         eval('other.'+functions[2]+'.connect(self.dockMng)')
         
         
-    def showOrHideDial(self):
+    def showDial(self):
         
         culprit = self.sender()
         
         if culprit is self.action_General_config:
             self.hwDial.exec_()
+    
+    
+    def getDataDir(self):
+        
+        dir = QFileDialog.getExistingDirectory(self, 'Select a directory...\n')
+        self.dirLine.setText(dir)
+        
+        
+    def qpdMonitProgs(self):
+        
+        culprit = self.sender()
+        newVal = culprit.value()
+        
+        if culprit == self.deflNumDbl:
+            if newVal < 0:
+                self.deflNegProg.setValue(abs(newVal))
+                self.deflPosProg.setValue(0)
+            elif newVal > 0:
+                self.deflPosProg.setValue(newVal)
+                self.deflNegProg.setValue(0)
+            else:
+                self.deflNegProg.setValue(0)
+                self.deflPosProg.setValue(0)
+        elif culprit == self.torsNumDbl:
+            if newVal < 0:
+                self.torsNegProg.setValue(abs(newVal))
+                self.torsPosProg.setValue(0)
+            elif newVal > 0:
+                self.torsPosProg.setValue(newVal)
+                self.torsNegProg.setValue(0)
+            else:
+                self.torsNegProg.setValue(0)
+                self.torsPosProg.setValue(0)
+        else:
+            self.sumProg.setValue(newVal)
         
         
     def actionNdocksConnections(self):
@@ -60,7 +105,15 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.action_QPD_and_piezo.changed.connect(self.dockMng)
         self.qpdNpiezoDock.visibilityChanged.connect(self.dockMng)
         
-        self.action_General_config.triggered.connect(self.showOrHideDial)
+        self.action_General_config.triggered.connect(self.showDial)
+        
+        
+    def genericConnetions(self):
+        
+        self.deflNumDbl.valueChanged.connect(self.qpdMonitProgs)
+        self.torsNumDbl.valueChanged.connect(self.qpdMonitProgs)
+        self.sumNumDbl.valueChanged.connect(self.qpdMonitProgs)
+        self.browseBtn.clicked.connect(self.getDataDir)
         
         
         
