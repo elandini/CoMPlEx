@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/ettore/GIT/CoMPlEx/GUIs/CoMPlEx_GUI.ui'
 #
-# Created: Tue Aug 25 18:18:43 2015
+# Created: Wed Aug 26 16:27:41 2015
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -40,8 +40,8 @@ class Ui_CoMPlEx_GUI(object):
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menu_Config = QtGui.QMenu(self.menubar)
         self.menu_Config.setObjectName(_fromUtf8("menu_Config"))
-        self.menu_Config_file = QtGui.QMenu(self.menu_Config)
-        self.menu_Config_file.setObjectName(_fromUtf8("menu_Config_file"))
+        self.menu_HW_configuration = QtGui.QMenu(self.menu_Config)
+        self.menu_HW_configuration.setObjectName(_fromUtf8("menu_HW_configuration"))
         self.menu_View = QtGui.QMenu(self.menubar)
         self.menu_View.setObjectName(_fromUtf8("menu_View"))
         CoMPlEx_GUI.setMenuBar(self.menubar)
@@ -988,11 +988,15 @@ class Ui_CoMPlEx_GUI(object):
         self.action_Load_parameters.setObjectName(_fromUtf8("action_Load_parameters"))
         self.action_Exit = QtGui.QAction(CoMPlEx_GUI)
         self.action_Exit.setObjectName(_fromUtf8("action_Exit"))
-        self.menu_Config_file.addAction(self.action_General_config)
-        self.menu_Config_file.addAction(self.action_Controls_config)
-        self.menu_Config.addAction(self.menu_Config_file.menuAction())
+        self.action_Load_config = QtGui.QAction(CoMPlEx_GUI)
+        self.action_Load_config.setObjectName(_fromUtf8("action_Load_config"))
+        self.action_Edit_config = QtGui.QAction(CoMPlEx_GUI)
+        self.action_Edit_config.setObjectName(_fromUtf8("action_Edit_config"))
+        self.menu_HW_configuration.addAction(self.action_Load_config)
+        self.menu_HW_configuration.addAction(self.action_Edit_config)
         self.menu_Config.addAction(self.actionSave_parameters)
         self.menu_Config.addAction(self.action_Load_parameters)
+        self.menu_Config.addAction(self.menu_HW_configuration.menuAction())
         self.menu_Config.addAction(self.action_Exit)
         self.menu_View.addAction(self.action_QPD_and_piezo)
         self.menu_View.addAction(self.action_Motors)
@@ -1009,7 +1013,7 @@ class Ui_CoMPlEx_GUI(object):
     def retranslateUi(self, CoMPlEx_GUI):
         CoMPlEx_GUI.setWindowTitle(_translate("CoMPlEx_GUI", "MainWindow", None))
         self.menu_Config.setTitle(_translate("CoMPlEx_GUI", "&File", None))
-        self.menu_Config_file.setTitle(_translate("CoMPlEx_GUI", "&Config file", None))
+        self.menu_HW_configuration.setTitle(_translate("CoMPlEx_GUI", "&HW configuration", None))
         self.menu_View.setTitle(_translate("CoMPlEx_GUI", "&View", None))
         self.qpdNpiezoDock.setWindowTitle(_translate("CoMPlEx_GUI", "QPD and piezo monitor", None))
         self.label_3.setText(_translate("CoMPlEx_GUI", "Sum [V]", None))
@@ -1151,5 +1155,7 @@ class Ui_CoMPlEx_GUI(object):
         self.action_Load_parameters.setShortcut(_translate("CoMPlEx_GUI", "Ctrl+L", None))
         self.action_Exit.setText(_translate("CoMPlEx_GUI", "&Exit", None))
         self.action_Exit.setShortcut(_translate("CoMPlEx_GUI", "Ctrl+Shift+E", None))
+        self.action_Load_config.setText(_translate("CoMPlEx_GUI", "L&oad config", None))
+        self.action_Edit_config.setText(_translate("CoMPlEx_GUI", "E&dit config", None))
 
 from pyqtgraph import PlotWidget

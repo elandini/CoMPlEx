@@ -8,6 +8,7 @@ import pyqtgraph as pg
 
 from random import random
 from time import sleep
+from ConfigParser import ConfigParser
 
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
@@ -17,8 +18,6 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
     def setupUi(self,MainWindow):
         super(CoMPlEx_main,self).setupUi(MainWindow)
         
-        self.hwDial = hwConfig_dial(self)
-        
         self.actionNdockDict = {self.action_Motors:[self.motorsDock,'isChecked','setVisible','visibilityChanged'],
                                 self.action_Settings:[self.settingsDock,'isChecked','setVisible','visibilityChanged'],
                                 self.action_Remote:[self.remoteDock,'isChecked','setVisible','visibilityChanged'],
@@ -27,6 +26,11 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
                                 self.settingsDock:[self.action_Settings,'isVisible','setChecked','changed'],
                                 self.remoteDock:[self.action_Remote,'isVisible','setChecked','changed'],
                                 self.qpdNpiezoDock:[self.action_QPD_and_piezo,'isVisible','setChecked','changed']}
+        
+        self.cfgFile = str(QFileDialog.getOpenFileName(self,'Select a configuration file',filter='Ini (*.ini)'))
+        if self.cfgFile == '':
+            self.cfgFile = 'defaultCfg.ini'
+        self.hwDial = hwConfig_dial(self,self.cfgFile)
         
         self.actionNdocksConnections()
         self.genericConnetions()
@@ -52,7 +56,7 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         
         culprit = self.sender()
         
-        if culprit is self.action_General_config:
+        if culprit is self.action_Edit_config:
             self.hwDial.exec_()
     
     
@@ -89,6 +93,20 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
                 self.torsPosProg.setValue(0)
         else:
             self.sumProg.setValue(newVal)
+    
+        
+    def cleanClose(self):
+        
+        self.motorsDock.visibilityChanged.disconnect()
+        self.settingsDock.visibilityChanged.disconnect()
+        self.remoteDock.visibilityChanged.disconnect()
+        self.qpdNpiezoDock.visibilityChanged.disconnect()
+        
+        self.close()
+        
+        
+    def loadCfg(self):
+        pass
         
         
     def actionNdocksConnections(self):
@@ -105,7 +123,14 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.action_QPD_and_piezo.changed.connect(self.dockMng)
         self.qpdNpiezoDock.visibilityChanged.connect(self.dockMng)
         
-        self.action_General_config.triggered.connect(self.showDial)
+        self.action_Edit_config.triggered.connect(self.showDial)
+        self.action_Exit.triggered.connect(self.cleanClose)
+        
+    
+    def buttonsConnections(self):
+        
+        self.addSegBtn.clicked.connect(self.addSeg)
+        self.removeSeg.clicked.connect(self.removeSeg)
         
         
     def genericConnetions(self):
@@ -114,6 +139,7 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.torsNumDbl.valueChanged.connect(self.qpdMonitProgs)
         self.sumNumDbl.valueChanged.connect(self.qpdMonitProgs)
         self.browseBtn.clicked.connect(self.getDataDir)
+        self.hwDial.accepted.connect(self.loadCfg)
         
         
         

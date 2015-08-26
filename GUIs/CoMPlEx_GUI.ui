@@ -33,16 +33,16 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <widget class="QMenu" name="menu_Config_file">
+    <widget class="QMenu" name="menu_HW_configuration">
      <property name="title">
-      <string>&amp;Config file</string>
+      <string>&amp;HW configuration</string>
      </property>
-     <addaction name="action_General_config"/>
-     <addaction name="action_Controls_config"/>
+     <addaction name="action_Load_config"/>
+     <addaction name="action_Edit_config"/>
     </widget>
-    <addaction name="menu_Config_file"/>
     <addaction name="actionSave_parameters"/>
     <addaction name="action_Load_parameters"/>
+    <addaction name="menu_HW_configuration"/>
     <addaction name="action_Exit"/>
    </widget>
    <widget class="QMenu" name="menu_View">
@@ -1976,6 +1976,16 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+E</string>
+   </property>
+  </action>
+  <action name="action_Load_config">
+   <property name="text">
+    <string>L&amp;oad config</string>
+   </property>
+  </action>
+  <action name="action_Edit_config">
+   <property name="text">
+    <string>E&amp;dit config</string>
    </property>
   </action>
  </widget>
