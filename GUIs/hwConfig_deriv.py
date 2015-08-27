@@ -1,6 +1,7 @@
 from hwConfig_dialog import *
-from PyQt4.QtGui import QDialog
+from PyQt4.QtGui import QDialog,QMessageBox,QFileDialog
 from ConfigParser import ConfigParser
+from os.path import splitext
 
 
 class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
@@ -55,12 +56,32 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
         self.parser.set('OTHER', 'imax',str(self.iGainMaxNumDbl.value()))
         self.parser.set('OTHER', 'pmax',str(self.pGainMaxNumDbl.value()))
         
-        fp = open(self.cfgFile,'w')
+        warningDial = QMessageBox(self)
+        warningDial.setWindowTitle('Saving...')
+        warningDial.setText('Do you want to create a new configuration file?')
+        warningDial.setStandardButtons(QMessageBox.Yes|QMessageBox.No)
+        warningDial.setDefaultButton(QMessageBox.No)
+        answer = warningDial.exec_()
+        if answer == 65536:
+            fp = open(self.cfgFile,'w')
+        else:
+            fname = str(QFileDialog.getSaveFileName(self,'Choose a name for your new configuration file:',filter='Ini (*.ini)'))
+            sf = splitext(fname)
+            if sf[1] != '.ini':
+                fname = sf[0]+'.ini'
+            self.cfgFile = fname
+            fp = open(fname,'w')
         
         self.parser.write(fp)
+        fp.close()
     
     
     def accept(self):
         
         self.saveControls()
-        super(hwConfig_dial,self).accept()    
+        super(hwConfig_dial,self).accept()   
+        
+        
+        
+        
+         

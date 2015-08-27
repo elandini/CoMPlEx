@@ -33,16 +33,9 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <widget class="QMenu" name="menu_HW_configuration">
-     <property name="title">
-      <string>&amp;HW configuration</string>
-     </property>
-     <addaction name="action_Load_config"/>
-     <addaction name="action_Edit_config"/>
-    </widget>
-    <addaction name="actionSave_parameters"/>
+    <addaction name="action_Save_parameters"/>
     <addaction name="action_Load_parameters"/>
-    <addaction name="menu_HW_configuration"/>
+    <addaction name="action_Edit_config"/>
     <addaction name="action_Exit"/>
    </widget>
    <widget class="QMenu" name="menu_View">
@@ -630,12 +623,19 @@
          <item>
           <layout class="QVBoxLayout" name="verticalLayout_6">
            <item>
-            <widget class="QLineEdit" name="xyStepsLine"/>
+            <widget class="QLineEdit" name="xyStepsLine">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QLineEdit" name="zStepsLine">
              <property name="alignment">
               <set>Qt::AlignCenter</set>
+             </property>
+             <property name="readOnly">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
@@ -1456,6 +1456,9 @@
         </layout>
        </widget>
        <widget class="QWidget" name="custFvsdTab">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <attribute name="title">
          <string>Custom FvsD</string>
         </attribute>
@@ -1601,7 +1604,7 @@
          <item row="5" column="1">
           <widget class="QDoubleSpinBox" name="speedcNumDbl">
            <property name="enabled">
-            <bool>true</bool>
+            <bool>false</bool>
            </property>
           </widget>
          </item>
@@ -1827,7 +1830,11 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="rdsLine"/>
+        <widget class="QLineEdit" name="rdsLine">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>
@@ -1954,7 +1961,7 @@
     <string>&amp;Remote</string>
    </property>
   </action>
-  <action name="actionSave_parameters">
+  <action name="action_Save_parameters">
    <property name="text">
     <string>&amp;Save parameters</string>
    </property>
@@ -1976,11 +1983,6 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+E</string>
-   </property>
-  </action>
-  <action name="action_Load_config">
-   <property name="text">
-    <string>L&amp;oad config</string>
    </property>
   </action>
   <action name="action_Edit_config">
