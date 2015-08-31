@@ -1,5 +1,5 @@
-from CoMPlEx_GUI import *
-from hwConfig_deriv import *
+from GUIs.CoMPlEx_GUI import *
+from GUIs.hwConfig_deriv import *
 
 from threading import Thread
 
@@ -9,7 +9,8 @@ import pyqtgraph as pg
 
 from os import makedirs
 from os.path import splitext, split, join, exists
-from ConfigParser import ConfigParser
+#from ConfigParser import ConfigParser
+from configparser import ConfigParser
 
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')

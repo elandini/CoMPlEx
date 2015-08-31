@@ -1,6 +1,7 @@
-from hwConfig_dialog import *
+from GUIs.hwConfig_dialog import *
 from PyQt4.QtGui import QDialog,QMessageBox,QFileDialog
-from ConfigParser import ConfigParser
+#from ConfigParser import ConfigParser
+from configparser import ConfigParser
 from os.path import splitext
 
 
