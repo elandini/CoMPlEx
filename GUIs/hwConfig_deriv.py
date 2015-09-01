@@ -4,7 +4,6 @@ from PyQt4.QtGui import QDialog,QMessageBox,QFileDialog
 from configparser import ConfigParser
 from os.path import splitext
 
-
 class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
     
     def __init__(self,parent = None,cfgFile = None):
@@ -13,7 +12,7 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
         super(hwConfig_dial,self).__init__(parent)
         self.setupUi(self)
         if cfgFile is None:
-            self.cfgFile = 'defaultCfg.ini'
+            self.cfgFile = 'config/defaultCfg.ini'
         else:
             self.cfgFile = cfgFile
         self.parser.read(self.cfgFile)
@@ -23,7 +22,12 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
     def fillControls(self):
         
         self.afmIpLine.setText(self.parser.get('CONN', 'afmip'))
-        self.afmPortNum.setValue(int(self.parser.get('CONN', 'afmport')))
+        self.afmSubPortNum.setValue(int(self.parser.get('CONN', 'afmsubport')))
+        self.afmPubPortNum.setValue(int(self.parser.get('CONN', 'afmpubport')))
+        self.deflNameLine.setText(self.parser.get('CONN', 'deflname'))
+        self.torsNameLine.setText(self.parser.get('CONN', 'torsname'))
+        self.sumNameLine.setText(self.parser.get('CONN', 'sumname'))
+        self.zNameLine.setText(self.parser.get('CONN', 'zname')) 
         self.motorXyPortLine.setText(self.parser.get('CONN', 'xyport'))
         self.motorZPortLine.setText(self.parser.get('CONN', 'zport'))
         
@@ -42,7 +46,12 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
     def saveControls(self):
         
         self.parser.set('CONN', 'afmip',self.afmIpLine.text())
-        self.parser.set('CONN', 'afmport',str(self.afmPortNum.value()))
+        self.parser.set('CONN', 'afmsumport',str(self.afmSubPortNum.value()))
+        self.parser.set('CONN', 'afmpumport',str(self.afmPubPortNum.value()))
+        self.parser.set('CONN', 'deflname',self.deflNameLine.text())
+        self.parser.set('CONN', 'torsname',self.torsNameLine.text())
+        self.parser.set('CONN', 'sumname',self.sumNameLine.text())
+        self.parser.set('CONN', 'zname',self.zNameLine.text())
         self.parser.set('CONN', 'xyport',self.motorXyPortLine.text())
         self.parser.set('CONN', 'zport',self.motorZPortLine.text())
         

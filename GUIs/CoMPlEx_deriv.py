@@ -31,7 +31,7 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         
         self.cfgFile = str(QFileDialog.getOpenFileName(self,'Select a configuration file',filter='Ini (*.ini)'))
         if self.cfgFile == '':
-            self.cfgFile = 'defaultCfg.ini'
+            self.cfgFile = 'config/defaultCfg.ini'
         self.channelCmbBox.clear()
         self.channelCmbBox.addItem('Engage')
         self.hwDial = hwConfig_dial(self,self.cfgFile)
@@ -81,7 +81,12 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.pGainNumDbl.setMaximum(float(parser.get('OTHER','pmax')))
         
         self.forwarderIP = parser.get('CONN','afmip')
-        self.forwarderPort = int(parser.get('CONN','afmport'))
+        self.forwarderPubPort = int(parser.get('CONN','afmpubport'))
+        self.forwarderSubPort = int(parser.get('CONN','afmsubport'))
+        self.deflName = parser.get('CONN','deflname')
+        self.torsName = parser.get('CONN','torsname')
+        self.sumName = parser.get('CONN','sumname')
+        self.zName = parser.get('CONN','zname')
         self.xyPort = parser.get('CONN','xyport')
         self.zPort = parser.get('CONN','zport')
         

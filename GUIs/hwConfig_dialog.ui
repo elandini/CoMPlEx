@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>531</width>
-    <height>631</height>
+    <height>696</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,6 +20,9 @@
       <string>Connections</string>
      </property>
      <layout class="QFormLayout" name="formLayout">
+      <property name="fieldGrowthPolicy">
+       <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+      </property>
       <item row="0" column="0">
        <widget class="QLabel" name="label">
         <property name="text">
@@ -33,12 +36,12 @@
       <item row="1" column="0">
        <widget class="QLabel" name="label_2">
         <property name="text">
-         <string>AFM Port</string>
+         <string>AFM Sub Port</string>
         </property>
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QSpinBox" name="afmPortNum">
+       <widget class="QSpinBox" name="afmSubPortNum">
         <property name="buttonSymbols">
          <enum>QAbstractSpinBox::NoButtons</enum>
         </property>
@@ -48,24 +51,81 @@
        </widget>
       </item>
       <item row="2" column="0">
+       <widget class="QLabel" name="label_14">
+        <property name="text">
+         <string>AFM Pub Port</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QSpinBox" name="afmPubPortNum">
+        <property name="buttonSymbols">
+         <enum>QAbstractSpinBox::NoButtons</enum>
+        </property>
+        <property name="maximum">
+         <number>100000000</number>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QLineEdit" name="deflNameLine"/>
+      </item>
+      <item row="7" column="0">
        <widget class="QLabel" name="label_3">
         <property name="text">
          <string>Motors XY Port</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
+      <item row="7" column="1">
        <widget class="QLineEdit" name="motorXyPortLine"/>
       </item>
-      <item row="3" column="0">
+      <item row="8" column="0">
        <widget class="QLabel" name="label_4">
         <property name="text">
          <string>Motors Z Port</string>
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
+      <item row="8" column="1">
        <widget class="QLineEdit" name="motorZPortLine"/>
+      </item>
+      <item row="4" column="1">
+       <widget class="QLineEdit" name="torsNameLine"/>
+      </item>
+      <item row="5" column="1">
+       <widget class="QLineEdit" name="sumNameLine"/>
+      </item>
+      <item row="6" column="1">
+       <widget class="QLineEdit" name="zNameLine"/>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_15">
+        <property name="text">
+         <string>Deflection device name</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_16">
+        <property name="text">
+         <string>Torsion device name</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="label_17">
+        <property name="text">
+         <string>Sum device name</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="0">
+       <widget class="QLabel" name="label_18">
+        <property name="text">
+         <string>Z device name</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
