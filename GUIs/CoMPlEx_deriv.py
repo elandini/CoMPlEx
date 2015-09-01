@@ -15,6 +15,8 @@ from configparser import ConfigParser
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
 
+from libs.epz import epz
+
 class CoMPlEx_main(Ui_CoMPlEx_GUI):
     
     def setupUi(self,MainWindow):
@@ -35,14 +37,21 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.channelCmbBox.clear()
         self.channelCmbBox.addItem('Engage')
         self.hwDial = hwConfig_dial(self,self.cfgFile)
-        self.laserSpot = self.alignPlot.plot([0],[0],pen = None, symbol = 'o', symbolPen = 'r', symbolSize = 50, symbolBrush = qg.QColor(26,0,0,128))
+        self.laserSpot = self.alignPlot.plot([0],[0],pen = None, symbol = 'o', symbolPen = 'r', symbolSize = 50, symbolBrush = qg.QColor(0,0,0,128))
         self.alignPlot.plot([0],[0],pen = None, symbol = 'o', symbolPen = {'color':'b','width':2}, symbolSize = 50, symbolBrush = qg.QColor(255,255,255,0))
         self.alignPlot.plotItem.showAxis('top',True)
         self.alignPlot.plotItem.showAxis('right',True)
         self.alignPlot.plotItem.showGrid(True,True,1)
         self.alignPlot.plotItem.setRange(xRange = [-10,10],yRange = [-10,10])
         self.alignPlot.plotItem.setMouseEnabled(False,False)
+        
+        self.deflEnv = epz.Environment()
+        self.torsEnv = epz.Environment()
+        self.sumEnv = epz.Environment()
+        self.zEnv = epz.Environment()
+        
         self.applyConfig()
+        self.epzConnect()
         self.actionNdocksConnections()
         self.genericConnetions()
     
@@ -90,6 +99,23 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.xyPort = parser.get('CONN','xyport')
         self.zPort = parser.get('CONN','zport')
         
+        self.deflEnv.pubport = self.forwarderPubPort
+        self.deflEnv.subport = self.forwarderSubPort
+        self.deflEnv.device = self.deflName
+        self.deflEnv.epserver = self.forwarderIP
+        self.torsEnv.pubport = self.forwarderPubPort
+        self.torsEnv.subport = self.forwarderSubPort
+        self.torsEnv.device = self.torsName
+        self.torsEnv.epserver = self.forwarderIP
+        self.sumEnv.pubport = self.forwarderPubPort
+        self.sumEnv.subport = self.forwarderSubPort
+        self.sumEnv.device = self.sumName
+        self.sumEnv.epserver = self.forwarderIP
+        self.zEnv.pubport = self.forwarderPubPort
+        self.zEnv.subport = self.forwarderSubPort
+        self.zEnv.device = self.zName
+        self.zEnv.epserver = self.forwarderIP
+        
         self.endZNumDbl.setMaximum(float(parser.get('PIEZO','zmax')))
         self.endZcNumDbl.setMaximum(float(parser.get('PIEZO','zmax')))
         self.endZNumDbl.setMinimum(float(parser.get('PIEZO','zmin')))
@@ -99,6 +125,26 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.startZNumDbl.setMinimum(float(parser.get('PIEZO','zmin')))
         self.startZcNumDbl.setMinimum(float(parser.get('PIEZO','zmin')))
         self.nearFar = (-1)**(int(parser.get('PIEZO','nearfar')))
+        
+        self.zPiezoProg.setInvertedAppearance(self.nearFar<0)
+        
+        
+    def epzConnect(self):
+        
+        self.deflData = epz.QtDATA(self.deflEnv)
+        self.torsData = epz.QtDATA(self.torsEnv)
+        self.sumData = epz.QtDATA(self.sumEnv)
+        self.zData = epz.QtDATA(self.zEnv)
+        
+        self.deflCmd = epz.CMD(self.deflEnv)
+        self.torsCmd = epz.CMD(self.torsEnv)
+        self.sumCmd = epz.CMD(self.sumEnv)
+        self.zCmd = epz.CMD(self.zEnv)
+        
+        self.deflData.goahead = True
+        self.torsData.goahead = True
+        self.sumData.goahead = True
+        self.zData.goahead = True
     
     
     def saveParams(self):
@@ -182,6 +228,14 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         
         dir = QFileDialog.getExistingDirectory(self, 'Select a directory...\n')
         self.dirLine.setText(dir)
+    
+    
+    def zMonitProg(self):
+        
+        culprit = self.sender()
+        newVal = culprit.value()
+        
+        self.zPiezoProg.setValue(newVal)
         
         
     def qpdMonitProgs(self):
@@ -199,6 +253,7 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
             else:
                 self.deflNegProg.setValue(0)
                 self.deflPosProg.setValue(0)
+            self.laserSpot.setData(self.laserSpot.xData,[newVal])
         elif culprit == self.torsNumDbl:
             if newVal < 0:
                 self.torsNegProg.setValue(abs(newVal))
@@ -209,8 +264,10 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
             else:
                 self.torsNegProg.setValue(0)
                 self.torsPosProg.setValue(0)
+            self.laserSpot.setData([newVal],self.laserSpot.yData)
         else:
             self.sumProg.setValue(newVal)
+            self.laserSpot.setBrush(qg.QColor(int(25.6*newVal),0,0,128))
     
         
     def cleanClose(self):
@@ -248,6 +305,11 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         
         self.addSegBtn.clicked.connect(self.addSeg)
         self.removeSeg.clicked.connect(self.removeSeg)
+        
+        
+    def epzConnections(self):
+        
+        pass
         
         
     def genericConnetions(self):
