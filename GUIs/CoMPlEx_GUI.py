@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/ettore/GIT/CoMPlEx/GUIs/CoMPlEx_GUI.ui'
+# Form implementation generated from reading ui file 'CoMPlEx_GUI.ui'
 #
-# Created: Thu Aug 27 17:09:27 2015
-#      by: PyQt4 UI code generator 4.10.4
+# Created: Wed Sep 02 11:35:09 2015
+#      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -36,12 +36,14 @@ class Ui_CoMPlEx_GUI(object):
         self.gridLayout.addWidget(self.centralPlot, 0, 0, 1, 1)
         CoMPlEx_GUI.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(CoMPlEx_GUI)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1115, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1115, 21))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menu_Config = QtGui.QMenu(self.menubar)
         self.menu_Config.setObjectName(_fromUtf8("menu_Config"))
         self.menu_View = QtGui.QMenu(self.menubar)
         self.menu_View.setObjectName(_fromUtf8("menu_View"))
+        self.menu_Analysis = QtGui.QMenu(self.menubar)
+        self.menu_Analysis.setObjectName(_fromUtf8("menu_Analysis"))
         CoMPlEx_GUI.setMenuBar(self.menubar)
         self.qpdNpiezoDock = QtGui.QDockWidget(CoMPlEx_GUI)
         self.qpdNpiezoDock.setMaximumSize(QtCore.QSize(524287, 524287))
@@ -181,6 +183,7 @@ class Ui_CoMPlEx_GUI(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.zPiezoProg.sizePolicy().hasHeightForWidth())
         self.zPiezoProg.setSizePolicy(sizePolicy)
+        self.zPiezoProg.setMaximum(10)
         self.zPiezoProg.setProperty("value", 0)
         self.zPiezoProg.setAlignment(QtCore.Qt.AlignCenter)
         self.zPiezoProg.setTextVisible(False)
@@ -992,6 +995,8 @@ class Ui_CoMPlEx_GUI(object):
         self.action_Exit.setObjectName(_fromUtf8("action_Exit"))
         self.action_Edit_config = QtGui.QAction(CoMPlEx_GUI)
         self.action_Edit_config.setObjectName(_fromUtf8("action_Edit_config"))
+        self.action_Open_SiMPlE = QtGui.QAction(CoMPlEx_GUI)
+        self.action_Open_SiMPlE.setObjectName(_fromUtf8("action_Open_SiMPlE"))
         self.menu_Config.addAction(self.action_Save_parameters)
         self.menu_Config.addAction(self.action_Load_parameters)
         self.menu_Config.addAction(self.action_Edit_config)
@@ -1000,8 +1005,10 @@ class Ui_CoMPlEx_GUI(object):
         self.menu_View.addAction(self.action_Motors)
         self.menu_View.addAction(self.action_Settings)
         self.menu_View.addAction(self.action_Remote)
+        self.menu_Analysis.addAction(self.action_Open_SiMPlE)
         self.menubar.addAction(self.menu_Config.menuAction())
         self.menubar.addAction(self.menu_View.menuAction())
+        self.menubar.addAction(self.menu_Analysis.menuAction())
 
         self.retranslateUi(CoMPlEx_GUI)
         self.motorTabs.setCurrentIndex(0)
@@ -1012,6 +1019,7 @@ class Ui_CoMPlEx_GUI(object):
         CoMPlEx_GUI.setWindowTitle(_translate("CoMPlEx_GUI", "MainWindow", None))
         self.menu_Config.setTitle(_translate("CoMPlEx_GUI", "&File", None))
         self.menu_View.setTitle(_translate("CoMPlEx_GUI", "&View", None))
+        self.menu_Analysis.setTitle(_translate("CoMPlEx_GUI", "&Analysis", None))
         self.qpdNpiezoDock.setWindowTitle(_translate("CoMPlEx_GUI", "QPD and piezo monitor", None))
         self.label_3.setText(_translate("CoMPlEx_GUI", "Sum [V]", None))
         self.label.setText(_translate("CoMPlEx_GUI", "Deflection [V]", None))
@@ -1153,5 +1161,6 @@ class Ui_CoMPlEx_GUI(object):
         self.action_Exit.setText(_translate("CoMPlEx_GUI", "&Exit", None))
         self.action_Exit.setShortcut(_translate("CoMPlEx_GUI", "Ctrl+Shift+E", None))
         self.action_Edit_config.setText(_translate("CoMPlEx_GUI", "E&dit config", None))
+        self.action_Open_SiMPlE.setText(_translate("CoMPlEx_GUI", "&Open SiMPlE", None))
 
 from pyqtgraph import PlotWidget

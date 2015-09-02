@@ -8,14 +8,18 @@ from PyQt4.QtGui import QDialog, QFileDialog
 import pyqtgraph as pg
 
 from os import makedirs
+from subprocess import Popen
 from os.path import splitext, split, join, exists
 #from ConfigParser import ConfigParser
 from configparser import ConfigParser
+import numpy as np
 
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
 
 from libs.epz import epz
+
+CHUNK = 20
 
 class CoMPlEx_main(Ui_CoMPlEx_GUI):
     
@@ -52,6 +56,7 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         
         self.applyConfig()
         self.epzConnect()
+        self.epzConnections()
         self.actionNdocksConnections()
         self.genericConnetions()
     
@@ -90,8 +95,8 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.pGainNumDbl.setMaximum(float(parser.get('OTHER','pmax')))
         
         self.forwarderIP = parser.get('CONN','afmip')
-        self.forwarderPubPort = int(parser.get('CONN','afmpubport'))
-        self.forwarderSubPort = int(parser.get('CONN','afmsubport'))
+        self.forwarderPubPort = parser.get('CONN','afmpubport')
+        self.forwarderSubPort = parser.get('CONN','afmsubport')
         self.deflName = parser.get('CONN','deflname')
         self.torsName = parser.get('CONN','torsname')
         self.sumName = parser.get('CONN','sumname')
@@ -125,8 +130,10 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.startZNumDbl.setMinimum(float(parser.get('PIEZO','zmin')))
         self.startZcNumDbl.setMinimum(float(parser.get('PIEZO','zmin')))
         self.nearFar = (-1)**(int(parser.get('PIEZO','nearfar')))
-        
         self.zPiezoProg.setInvertedAppearance(self.nearFar<0)
+        
+        self.simplePath = parser.get('SIMPLE','path')
+        self.action_Open_SiMPlE.setEnabled(len(self.simplePath) > 2)
         
         
     def epzConnect(self):
@@ -141,10 +148,28 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.sumCmd = epz.CMD(self.sumEnv)
         self.zCmd = epz.CMD(self.zEnv)
         
-        self.deflData.goahead = True
-        self.torsData.goahead = True
-        self.sumData.goahead = True
-        self.zData.goahead = True
+        self.deflData.notify = True
+        self.deflData.save = False
+        self.torsData.notify = True
+        self.torsData.save = False
+        self.sumData.notify = True
+        self.sumData.save = False
+        self.zData.notify = True
+        self.zData.save = False
+        
+        self.sumData.chunk = CHUNK
+        self.deflData.chunk = CHUNK
+        self.torsData.chunk = CHUNK
+        self.zData.chunk = CHUNK
+        
+        self.sumData.start()
+        self.sumCmd.send('g',1)
+        self.deflData.start()
+        self.deflCmd.send('g',1)
+        self.torsData.start()
+        self.torsCmd.send('g',1)
+        self.zData.start()
+        self.zCmd.send('g',1)
     
     
     def saveParams(self):
@@ -267,17 +292,70 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
             self.laserSpot.setData([newVal],self.laserSpot.yData)
         else:
             self.sumProg.setValue(newVal)
-            self.laserSpot.setBrush(qg.QColor(int(25.6*newVal),0,0,128))
+            self.laserSpot.setSymbolBrush(qg.QColor(int(25.5*newVal),0,0,128))
+    
+    
+    def sendSum(self,v):
+        
+        sumValue = np.max(np.array(v[1]))
+        
+        # CANCELLA NELLA VERSIONE DEFINITIVA
+        sumValue *=10
+        # CANCELLA NELLA VERSIONE DEFINITIVA
+        
+        self.sumNumDbl.setValue(sumValue)
+        
+        
+    def sendDefl(self,v):
+        
+        deflValue = np.max(np.array(v[1]))
+        
+        # CANCELLA NELLA VERSIONE DEFINITIVA
+        deflValue *=10
+        # CANCELLA NELLA VERSIONE DEFINITIVA
+        
+        self.deflNumDbl.setValue(deflValue)
+        
+        
+    def sendTors(self,v):
+        
+        torsValue = np.max(np.array(v[1]))
+        
+        # CANCELLA NELLA VERSIONE DEFINITIVA
+        torsValue *=10
+        # CANCELLA NELLA VERSIONE DEFINITIVA
+        
+        self.torsNumDbl.setValue(torsValue)
+        
+        
+    def sendZ(self,v):
+        
+        zValue = np.max(np.array(v[1]))
+        
+        # CANCELLA NELLA VERSIONE DEFINITIVA
+        zValue *=10
+        # CANCELLA NELLA VERSIONE DEFINITIVA
+        
+        self.zPiezoNumDbl.setValue(zValue)
     
         
-    def cleanClose(self):
+    def close(self):
         
         self.motorsDock.visibilityChanged.disconnect()
         self.settingsDock.visibilityChanged.disconnect()
         self.remoteDock.visibilityChanged.disconnect()
         self.qpdNpiezoDock.visibilityChanged.disconnect()
+        self.sumData.stop()
+        self.deflData.stop()
+        self.torsData.stop()
+        self.zData.stop()
         
-        self.close()
+        super(CoMPlEx_main,self).close()
+        
+        
+    def startAnalyzing(self):
+        
+        p = Popen('python3 '+self.simplePath)
         
         
     def actionNdocksConnections(self):
@@ -295,10 +373,12 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.qpdNpiezoDock.visibilityChanged.connect(self.dockMng)
         
         self.action_Edit_config.triggered.connect(self.showDial)
-        self.action_Exit.triggered.connect(self.cleanClose)
+        self.action_Exit.triggered.connect(self.close)
         
         self.action_Save_parameters.triggered.connect(self.saveParams)
         self.action_Load_parameters.triggered.connect(self.loadParams)
+        
+        self.action_Open_SiMPlE.triggered.connect(self.startAnalyzing)
         
     
     def buttonsConnections(self):
@@ -309,7 +389,10 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         
     def epzConnections(self):
         
-        pass
+        self.sumData.chunkReceived.connect(self.sendSum)
+        self.deflData.chunkReceived.connect(self.sendDefl)
+        self.torsData.chunkReceived.connect(self.sendTors)
+        self.zData.chunkReceived.connect(self.sendZ)
         
         
     def genericConnetions(self):
@@ -317,8 +400,8 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.deflNumDbl.valueChanged.connect(self.qpdMonitProgs)
         self.torsNumDbl.valueChanged.connect(self.qpdMonitProgs)
         self.sumNumDbl.valueChanged.connect(self.qpdMonitProgs)
+        self.zPiezoNumDbl.valueChanged.connect(self.zMonitProg)
         self.browseBtn.clicked.connect(self.getDataDir)
-        self.hwDial.accepted.connect(self.applyConfig)
         
         
         

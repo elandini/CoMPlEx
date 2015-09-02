@@ -26,7 +26,7 @@
      <x>0</x>
      <y>0</y>
      <width>1115</width>
-     <height>25</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_Config">
@@ -47,8 +47,15 @@
     <addaction name="action_Settings"/>
     <addaction name="action_Remote"/>
    </widget>
+   <widget class="QMenu" name="menu_Analysis">
+    <property name="title">
+     <string>&amp;Analysis</string>
+    </property>
+    <addaction name="action_Open_SiMPlE"/>
+   </widget>
    <addaction name="menu_Config"/>
    <addaction name="menu_View"/>
+   <addaction name="menu_Analysis"/>
   </widget>
   <widget class="QDockWidget" name="qpdNpiezoDock">
    <property name="maximumSize">
@@ -323,6 +330,9 @@
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="maximum">
+            <number>10</number>
            </property>
            <property name="value">
             <number>0</number>
@@ -1988,6 +1998,11 @@
   <action name="action_Edit_config">
    <property name="text">
     <string>E&amp;dit config</string>
+   </property>
+  </action>
+  <action name="action_Open_SiMPlE">
+   <property name="text">
+    <string>&amp;Open SiMPlE</string>
    </property>
   </action>
  </widget>

@@ -79,7 +79,6 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
             sf = splitext(fname)
             if sf[1] != '.ini':
                 fname = sf[0]+'.ini'
-            self.cfgFile = fname
             fp = open(fname,'w')
         
         self.parser.write(fp)
@@ -89,6 +88,11 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
     def accept(self):
         
         self.saveControls()
+        warningDial = QMessageBox(self)
+        warningDial.setWindowTitle('WARNING')
+        warningDial.setText('The changes made to the configuration file will become effective the next time you open CoMPlEx ui')
+        warningDial.setStandardButtons(QMessageBox.Ok)
+        answer = warningDial.exec_()
         super(hwConfig_dial,self).accept()   
         
         
