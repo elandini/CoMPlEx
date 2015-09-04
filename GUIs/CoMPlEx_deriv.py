@@ -1,10 +1,12 @@
 from GUIs.CoMPlEx_GUI import *
 from GUIs.hwConfig_deriv import *
+from GUIs.hwConfig_deriv import *
 
 from threading import Thread
 
 import PyQt4.QtGui as qg
 from PyQt4.QtGui import QDialog, QFileDialog
+from PyQt4.QtGui import QMainWindow
 import pyqtgraph as pg
 
 from os import makedirs
@@ -21,10 +23,12 @@ from libs.epz import epz
 
 CHUNK = 20
 
-class CoMPlEx_main(Ui_CoMPlEx_GUI):
+class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     
-    def setupUi(self,MainWindow):
-        super(CoMPlEx_main,self).setupUi(MainWindow)
+    def __init__(self,parent = None):
+    
+        super(CoMPlEx_main,self).__init__(parent)
+        self.setupUi(self)
         
         self.actionNdockDict = {self.action_Motors:[self.motorsDock,'isChecked','setVisible','visibilityChanged'],
                                 self.action_Settings:[self.settingsDock,'isChecked','setVisible','visibilityChanged'],
@@ -34,6 +38,8 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
                                 self.settingsDock:[self.action_Settings,'isVisible','setChecked','changed'],
                                 self.remoteDock:[self.action_Remote,'isVisible','setChecked','changed'],
                                 self.qpdNpiezoDock:[self.action_QPD_and_piezo,'isVisible','setChecked','changed']}
+        
+        self.custFvsdSegs = []
         
         self.cfgFile = str(QFileDialog.getOpenFileName(self,'Select a configuration file',filter='Ini (*.ini)'))
         if self.cfgFile == '':
@@ -58,6 +64,7 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.epzConnect()
         self.epzConnections()
         self.actionNdocksConnections()
+        self.buttonsConnections()
         self.genericConnetions()
     
     
@@ -121,14 +128,19 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.zEnv.device = self.zName
         self.zEnv.epserver = self.forwarderIP
         
-        self.endZNumDbl.setMaximum(float(parser.get('PIEZO','zmax')))
-        self.endZcNumDbl.setMaximum(float(parser.get('PIEZO','zmax')))
-        self.endZNumDbl.setMinimum(float(parser.get('PIEZO','zmin')))
-        self.endZcNumDbl.setMinimum(float(parser.get('PIEZO','zmin')))
-        self.startZNumDbl.setMaximum(float(parser.get('PIEZO','zmax')))
-        self.startZcNumDbl.setMaximum(float(parser.get('PIEZO','zmax')))
-        self.startZNumDbl.setMinimum(float(parser.get('PIEZO','zmin')))
-        self.startZcNumDbl.setMinimum(float(parser.get('PIEZO','zmin')))
+        zM = float(parser.get('PIEZO','zmax'))*1000
+        zm = float(parser.get('PIEZO','zmin'))*1000
+        
+        self.endZNumDbl.setMaximum(zM)
+        self.endZcNumDbl.setMaximum(zM)
+        self.endZNumDbl.setMinimum(zm)
+        self.endZcNumDbl.setMinimum(zm)
+        self.startZNumDbl.setMaximum(zM)
+        self.startZcNumDbl.setMaximum(zM)
+        self.startZNumDbl.setMinimum(zm)
+        self.startZcNumDbl.setMinimum(zm)
+        self.calibStimZOffsetNumDbl.setMaximum(zM)
+        self.calibStimZOffsetNumDbl.setMinimum(zm)
         self.nearFar = (-1)**(int(parser.get('PIEZO','nearfar')))
         self.zPiezoProg.setInvertedAppearance(self.nearFar<0)
         
@@ -319,7 +331,7 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         
     def sendTors(self,v):
         
-        torsValue = np.max(np.array(v[1]))
+        torsValue = np.max(np.array(v[2]))
         
         # CANCELLA NELLA VERSIONE DEFINITIVA
         torsValue *=10
@@ -358,6 +370,73 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         p = Popen('python3 '+self.simplePath)
         
         
+    def addSeg(self):
+        
+        seg = {}
+        
+        seg['zLim'] = self.endZcNumDbl.value()
+        seg['fLim'] = self.endFcNumDbl.value()
+        seg['ptNum'] = self.ptNumcNum.value()
+        seg['speed'] = self.speedcNumDbl.value()
+        seg['direction'] = self.dircCmbBox.currentIndex()
+        seg['holdT'] = self.holdTimecNumDbl.value()
+        seg['fbOn'] = self.constForcecCkBox.isChecked()
+        
+        self.custFvsdSegs.append(seg)
+        
+        self.segCmbBox.addItem('Segment: ' + str(self.segCmbBox.count()))
+        
+        if not self.removeSegBtn.isEnabled():
+            self.removeSegBtn.setEnabled(True)
+        
+        
+    def removeSeg(self):
+        
+        junkInd = self.segCmbBox.currentIndex()
+        for i in xrange(self.segCmbBox.count()-(junkInd+1)):
+            num = i+junkInd
+            self.segCmbBox.setItemText(i+junkInd+1,'Segment: '+str(num))
+        self.segCmbBox.removeItem(junkInd)
+        del self.custFvsdSegs[junkInd]
+        self.removeSegBtn.setEnabled(len(self.custFvsdSegs))
+        if len(self.custFvsdSegs):
+            self.segCmbBox.setCurrentIndex(0)
+        else:
+            self.showSeg()
+        
+        
+    def showSeg(self):
+        if self.segCmbBox.count()==0:
+            self.endZcNumDbl.setValue(0)
+            self.endFcNumDbl.setValue(0)
+            self.ptNumcNum.setValue(0)
+            self.speedcNumDbl.setValue(0)
+            self.dircCmbBox.setCurrentIndex(0)
+            self.holdTimecNumDbl.setValue(0)
+            self.constForcecCkBox.setChecked(False)
+            
+            return None
+         
+        seg = self.custFvsdSegs[self.segCmbBox.currentIndex()]
+        self.endZcNumDbl.setValue(seg['zLim'])
+        self.endFcNumDbl.setValue(seg['fLim'])
+        self.ptNumcNum.setValue(seg['ptNum'])
+        self.speedcNumDbl.setValue(seg['speed'])
+        self.dircCmbBox.setCurrentIndex(seg['direction'])
+        self.holdTimecNumDbl.setValue(seg['holdT'])
+        self.constForcecCkBox.setChecked(seg['fbOn'])
+        
+        
+    def guideSeg(self):
+        
+        culprit = self.sender()
+        ind = culprit.currentIndex()
+        
+        self.speedcNumDbl.setEnabled(ind!=2)
+        self.constForcecCkBox.setEnabled(ind==2)
+        self.holdTimecNumDbl.setEnabled(ind==2)
+        
+        
     def actionNdocksConnections(self):
         
         self.action_Motors.changed.connect(self.dockMng)
@@ -384,7 +463,7 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
     def buttonsConnections(self):
         
         self.addSegBtn.clicked.connect(self.addSeg)
-        self.removeSeg.clicked.connect(self.removeSeg)
+        self.removeSegBtn.clicked.connect(self.removeSeg)
         
         
     def epzConnections(self):
@@ -402,6 +481,8 @@ class CoMPlEx_main(Ui_CoMPlEx_GUI):
         self.sumNumDbl.valueChanged.connect(self.qpdMonitProgs)
         self.zPiezoNumDbl.valueChanged.connect(self.zMonitProg)
         self.browseBtn.clicked.connect(self.getDataDir)
+        self.segCmbBox.currentIndexChanged.connect(self.showSeg)
+        self.dircCmbBox.currentIndexChanged.connect(self.guideSeg)
         
         
         

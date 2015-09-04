@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'CoMPlEx_GUI.ui'
 #
-# Created: Wed Sep 02 11:35:09 2015
+# Created: Fri Sep 04 17:04:40 2015
 #      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
@@ -747,7 +747,7 @@ class Ui_CoMPlEx_GUI(object):
         self.gridLayout_7.addWidget(self.uploadPtNumBtn, 6, 2, 1, 1)
         self.functionsTabs.addTab(self.fvsdTab, _fromUtf8(""))
         self.custFvsdTab = QtGui.QWidget()
-        self.custFvsdTab.setEnabled(False)
+        self.custFvsdTab.setEnabled(True)
         self.custFvsdTab.setObjectName(_fromUtf8("custFvsdTab"))
         self.gridLayout_8 = QtGui.QGridLayout(self.custFvsdTab)
         self.gridLayout_8.setObjectName(_fromUtf8("gridLayout_8"))
@@ -822,7 +822,7 @@ class Ui_CoMPlEx_GUI(object):
         self.curveNumcNum.setObjectName(_fromUtf8("curveNumcNum"))
         self.gridLayout_8.addWidget(self.curveNumcNum, 12, 1, 1, 1)
         self.speedcNumDbl = QtGui.QDoubleSpinBox(self.custFvsdTab)
-        self.speedcNumDbl.setEnabled(False)
+        self.speedcNumDbl.setEnabled(True)
         self.speedcNumDbl.setObjectName(_fromUtf8("speedcNumDbl"))
         self.gridLayout_8.addWidget(self.speedcNumDbl, 5, 1, 1, 1)
         self.label_46 = QtGui.QLabel(self.custFvsdTab)

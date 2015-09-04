@@ -122,7 +122,6 @@ class Skeldata(object):
         while self.goahead:
             body = self.socket.recv_string()
             data = [float(x) for x in body.strip(self.head).split(':')]
-            print(self.notify)
             if self.save:
                 self.queue.put(data)
             if self.notify:
