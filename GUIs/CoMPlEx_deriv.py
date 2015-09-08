@@ -1,6 +1,6 @@
 from GUIs.CoMPlEx_GUI import *
 from GUIs.hwConfig_deriv import *
-from GUIs.hwConfig_deriv import *
+from GUIs.zPath_deriv import *
 
 from threading import Thread
 
@@ -259,6 +259,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         if culprit is self.action_Edit_config:
             self.hwDial.exec_()
+        elif culprit is self.shoZTravelBtn:
+            self.plotSeg()
     
     
     def getDataDir(self):
@@ -357,10 +359,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.settingsDock.visibilityChanged.disconnect()
         self.remoteDock.visibilityChanged.disconnect()
         self.qpdNpiezoDock.visibilityChanged.disconnect()
-        self.sumData.stop()
-        self.deflData.stop()
-        self.torsData.stop()
-        self.zData.stop()
         
         super(CoMPlEx_main,self).close()
         
@@ -388,6 +386,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         if not self.removeSegBtn.isEnabled():
             self.removeSegBtn.setEnabled(True)
+            self.updateSegBtn.setEnabled(True)
+        self.segCmbBox.setCurrentIndex(self.segCmbBox.count()-1)
         
         
     def removeSeg(self):
@@ -399,6 +399,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.segCmbBox.removeItem(junkInd)
         del self.custFvsdSegs[junkInd]
         self.removeSegBtn.setEnabled(len(self.custFvsdSegs))
+        self.updateSegBtn.setEnabled(len(self.custFvsdSegs))
         if len(self.custFvsdSegs):
             self.segCmbBox.setCurrentIndex(0)
         else:
@@ -418,13 +419,26 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             return None
          
         seg = self.custFvsdSegs[self.segCmbBox.currentIndex()]
+        self.dircCmbBox.setCurrentIndex(seg['direction'])
         self.endZcNumDbl.setValue(seg['zLim'])
         self.endFcNumDbl.setValue(seg['fLim'])
         self.ptNumcNum.setValue(seg['ptNum'])
         self.speedcNumDbl.setValue(seg['speed'])
-        self.dircCmbBox.setCurrentIndex(seg['direction'])
         self.holdTimecNumDbl.setValue(seg['holdT'])
         self.constForcecCkBox.setChecked(seg['fbOn'])
+        
+        
+    def updateSeg(self):
+        
+        ind = self.segCmbBox.currentIndex()
+        
+        self.custFvsdSegs[ind]['zLim'] = self.endZcNumDbl.value()
+        self.custFvsdSegs[ind]['fLim'] = self.endFcNumDbl.value()
+        self.custFvsdSegs[ind]['ptNum'] = self.ptNumcNum.value()
+        self.custFvsdSegs[ind]['speed'] = self.speedcNumDbl.value()
+        self.custFvsdSegs[ind]['direction'] = self.dircCmbBox.currentIndex()
+        self.custFvsdSegs[ind]['holdT'] = self.holdTimecNumDbl.value()
+        self.custFvsdSegs[ind]['fbOn'] = self.constForcecCkBox.isChecked()
         
         
     def guideSeg(self):
@@ -432,9 +446,24 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         culprit = self.sender()
         ind = culprit.currentIndex()
         
+        seg = self.segCmbBox.count()
+        
         self.speedcNumDbl.setEnabled(ind!=2)
         self.constForcecCkBox.setEnabled(ind==2)
         self.holdTimecNumDbl.setEnabled(ind==2)
+        
+        if ind == 2:
+            zOld = self.custFvsdSegs[seg-1]['zLim'] if seg>0 else self.startZcNumDbl.value()
+            self.endZcNumDbl.setValue(zOld)
+            self.endZcNumDbl.setEnabled(False)
+        else:
+            self.endZcNumDbl.setEnabled(True)
+            
+            
+    def plotSeg(self):
+        
+        zPathDial = zPath_dial(self,self.custFvsdSegs,self.startZcNumDbl.value())
+        zPathDial.exec_()
         
         
     def actionNdocksConnections(self):
@@ -464,6 +493,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.addSegBtn.clicked.connect(self.addSeg)
         self.removeSegBtn.clicked.connect(self.removeSeg)
+        self.updateSegBtn.clicked.connect(self.updateSeg)
+        self.shoZTravelBtn.clicked.connect(self.showDial)
         
         
     def epzConnections(self):

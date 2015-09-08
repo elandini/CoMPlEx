@@ -1473,18 +1473,18 @@
          <string>Custom FvsD</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_8">
+         <item row="0" column="1">
+          <widget class="QDoubleSpinBox" name="startZcNumDbl"/>
+         </item>
          <item row="2" column="1">
           <widget class="QDoubleSpinBox" name="endZcNumDbl"/>
          </item>
-         <item row="1" column="0" colspan="3">
+         <item row="1" column="0" colspan="4">
           <widget class="Line" name="line_9">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
            </property>
           </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QDoubleSpinBox" name="startZcNumDbl"/>
          </item>
          <item row="6" column="0">
           <widget class="QLabel" name="label_34">
@@ -1499,6 +1499,9 @@
             <string>End Z [nm]</string>
            </property>
           </widget>
+         </item>
+         <item row="10" column="0" colspan="2">
+          <widget class="QComboBox" name="segCmbBox"/>
          </item>
          <item row="6" column="1">
           <widget class="QComboBox" name="dircCmbBox">
@@ -1519,8 +1522,19 @@
            </item>
           </widget>
          </item>
-         <item row="10" column="0" colspan="2">
-          <widget class="QComboBox" name="segCmbBox"/>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_29">
+           <property name="text">
+            <string>Start Z [nm]</string>
+           </property>
+          </widget>
+         </item>
+         <item row="10" column="3">
+          <widget class="QPushButton" name="removeSegBtn">
+           <property name="text">
+            <string>Remove</string>
+           </property>
+          </widget>
          </item>
          <item row="4" column="0">
           <widget class="QLabel" name="label_33">
@@ -1529,41 +1543,13 @@
            </property>
           </widget>
          </item>
-         <item row="10" column="2">
-          <widget class="QPushButton" name="removeSegBtn">
-           <property name="text">
-            <string>Remove</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="0">
-          <widget class="QLabel" name="label_29">
-           <property name="text">
-            <string>Start Z [nm]</string>
-           </property>
-          </widget>
+         <item row="3" column="1">
+          <widget class="QDoubleSpinBox" name="endFcNumDbl"/>
          </item>
          <item row="3" column="0">
           <widget class="QLabel" name="label_31">
            <property name="text">
             <string>End Force [pN]</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="1">
-          <widget class="QDoubleSpinBox" name="endFcNumDbl"/>
-         </item>
-         <item row="0" column="2">
-          <widget class="QPushButton" name="uploadStartZcBtn">
-           <property name="text">
-            <string>Upload</string>
-           </property>
-          </widget>
-         </item>
-         <item row="7" column="0">
-          <widget class="QLabel" name="label_35">
-           <property name="text">
-            <string>Hold Time [s]</string>
            </property>
           </widget>
          </item>
@@ -1581,23 +1567,17 @@
            </property>
           </widget>
          </item>
-         <item row="4" column="1">
-          <widget class="QSpinBox" name="ptNumcNum"/>
-         </item>
-         <item row="8" column="0">
-          <widget class="QCheckBox" name="constForcecCkBox">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
+         <item row="7" column="0">
+          <widget class="QLabel" name="label_35">
            <property name="text">
-            <string>Constant Force</string>
+            <string>Hold Time [s]</string>
            </property>
           </widget>
          </item>
-         <item row="11" column="0" colspan="3">
-          <widget class="QPushButton" name="shoZTravelBox">
+         <item row="0" column="3">
+          <widget class="QPushButton" name="uploadStartZcBtn">
            <property name="text">
-            <string>Show Z travel preview</string>
+            <string>Upload</string>
            </property>
           </widget>
          </item>
@@ -1611,10 +1591,23 @@
          <item row="12" column="1">
           <widget class="QSpinBox" name="curveNumcNum"/>
          </item>
-         <item row="5" column="1">
-          <widget class="QDoubleSpinBox" name="speedcNumDbl">
+         <item row="4" column="1">
+          <widget class="QSpinBox" name="ptNumcNum"/>
+         </item>
+         <item row="11" column="0" colspan="4">
+          <widget class="QPushButton" name="shoZTravelBtn">
+           <property name="text">
+            <string>Show Z travel preview</string>
+           </property>
+          </widget>
+         </item>
+         <item row="8" column="0">
+          <widget class="QCheckBox" name="constForcecCkBox">
            <property name="enabled">
-            <bool>true</bool>
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Constant Force</string>
            </property>
           </widget>
          </item>
@@ -1622,6 +1615,20 @@
           <widget class="QLabel" name="label_46">
            <property name="text">
             <string>Speed [nm/s]</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1">
+          <widget class="QDoubleSpinBox" name="speedcNumDbl">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="10" column="2">
+          <widget class="QPushButton" name="updateSegBtn">
+           <property name="text">
+            <string>Update</string>
            </property>
           </widget>
          </item>
