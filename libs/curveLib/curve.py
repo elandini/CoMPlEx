@@ -15,7 +15,9 @@ class curve(mvobject.mvobject):
         #  F pN
         defaults = {'fzfd':False,'k':1.0, 'relevant':True, 'sensitivity': 50.0}
         self.parseConfig(defaults,'Curve')
-
+        
+        self.savedSeg = 0
+        
         self.filename = ''
         self.basename = ''
         self.segments=[]
@@ -77,16 +79,20 @@ class curve(mvobject.mvobject):
         if fname == None:
             return False
 
-        out_file = open(str(fname),"w")
-        out_file.write("# TEXT EXPORT\n")
-        out_file.write("# springConstant: {0}\n".format(self.k))
-        out_file.write("# units: m N\n")    
-        if self.fzfd:
-            out_file.write("# fzfd: 1\n")
+        if self.savedSeg == 0:
+            out_file = open(str(fname),"w")
+            out_file.write("# TEXT EXPORT\n")
+            out_file.write("# springConstant: {0}\n".format(self.k))
+            out_file.write("# units: m N\n")    
+            if self.fzfd:
+                out_file.write("# fzfd: 1\n")
+            else:
+                out_file.write("# fzfd: 0\n")
+            out_file.write("#\n")
         else:
-            out_file.write("# fzfd: 0\n")
-        out_file.write("#\n")
-        i=0
+            out_file = open(str(fname),"a")
+            
+        i=self.savedSeg
         for p in self.segments:
             if i != 0:
                 out_file.write("\n")
@@ -101,6 +107,7 @@ class curve(mvobject.mvobject):
             for i in range(len(p.z)):
                 out_file.write("{0} {1}\n".format(p.z[i]*1e-9, -1.0*p.f[i]*1e-12))
             i+=1
+        self.savedSeg = i
         out_file.close()
         return True
     

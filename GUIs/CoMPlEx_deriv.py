@@ -25,6 +25,8 @@ CHUNK = 20
 
 class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     
+    channels = ['Engage','Calib QPD','Calib K','FvsD curve','FvsD map','Custom curve','Custom map']
+    
     def __init__(self,parent = None):
     
         super(CoMPlEx_main,self).__init__(parent)
@@ -41,11 +43,14 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.custFvsdSegs = []
         
+        self.programs = [self.engage,self.calibQPD,self.calibK,self.fvsd,self.fvsdMap,self.custom,self.customMap]
+        self.stops = [self.stopSingle,self.stopMap]
+        
         self.cfgFile = str(QFileDialog.getOpenFileName(self,'Select a configuration file',filter='Ini (*.ini)'))
         if self.cfgFile == '':
             self.cfgFile = 'config/defaultCfg.ini'
         self.channelCmbBox.clear()
-        self.channelCmbBox.addItem('Engage')
+        self.channelMng('Engage')
         self.hwDial = hwConfig_dial(self,self.cfgFile)
         self.laserSpot = self.alignPlot.plot([0],[0],pen = None, symbol = 'o', symbolPen = 'r', symbolSize = 50, symbolBrush = qg.QColor(0,0,0,128))
         self.alignPlot.plot([0],[0],pen = None, symbol = 'o', symbolPen = {'color':'b','width':2}, symbolSize = 50, symbolBrush = qg.QColor(255,255,255,0))
@@ -55,10 +60,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.alignPlot.plotItem.setRange(xRange = [-10,10],yRange = [-10,10])
         self.alignPlot.plotItem.setMouseEnabled(False,False)
         
-        self.deflEnv = epz.Environment()
-        self.torsEnv = epz.Environment()
-        self.sumEnv = epz.Environment()
-        self.zEnv = epz.Environment()
+        self.curveEnv = epz.Environment()
+        self.monitEnv = epz.Environment()
         
         self.applyConfig()
         self.epzConnect()
@@ -66,6 +69,18 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.actionNdocksConnections()
         self.buttonsConnections()
         self.genericConnetions()
+    
+    
+    def channelMng(self,channel,operation = '+'):
+        
+        if operation == '+':
+            if channel in self.channels:
+                self.channelCmbBox.addItem(channel)
+                del self.channels[self.channels.index(channel)]
+        elif operation == '-':
+            if channel not in self.channels:
+                self.channelCmbBox.removeItem(self.channelCmbBox.findText(channel))
+                self.channels.append(channel)
     
     
     def getParamsDict(self):
@@ -104,29 +119,17 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.forwarderIP = parser.get('CONN','afmip')
         self.forwarderPubPort = parser.get('CONN','afmpubport')
         self.forwarderSubPort = parser.get('CONN','afmsubport')
-        self.deflName = parser.get('CONN','deflname')
-        self.torsName = parser.get('CONN','torsname')
-        self.sumName = parser.get('CONN','sumname')
-        self.zName = parser.get('CONN','zname')
-        self.xyPort = parser.get('CONN','xyport')
-        self.zPort = parser.get('CONN','zport')
+        self.curveName = parser.get('CONN','curvename')
+        self.monitName = parser.get('CONN','monitname')
         
-        self.deflEnv.pubport = self.forwarderPubPort
-        self.deflEnv.subport = self.forwarderSubPort
-        self.deflEnv.device = self.deflName
-        self.deflEnv.epserver = self.forwarderIP
-        self.torsEnv.pubport = self.forwarderPubPort
-        self.torsEnv.subport = self.forwarderSubPort
-        self.torsEnv.device = self.torsName
-        self.torsEnv.epserver = self.forwarderIP
-        self.sumEnv.pubport = self.forwarderPubPort
-        self.sumEnv.subport = self.forwarderSubPort
-        self.sumEnv.device = self.sumName
-        self.sumEnv.epserver = self.forwarderIP
-        self.zEnv.pubport = self.forwarderPubPort
-        self.zEnv.subport = self.forwarderSubPort
-        self.zEnv.device = self.zName
-        self.zEnv.epserver = self.forwarderIP
+        self.curveEnv.pubport = self.forwarderPubPort
+        self.curveEnv.subport = self.forwarderSubPort
+        self.curveEnv.device = self.curveName
+        self.curveEnv.epserver = self.forwarderIP
+        self.monitEnv.pubport = self.forwarderPubPort
+        self.monitEnv.subport = self.forwarderSubPort
+        self.monitEnv.device = self.monitName
+        self.monitEnv.epserver = self.forwarderIP
         
         zM = float(parser.get('PIEZO','zmax'))*1000
         zm = float(parser.get('PIEZO','zmin'))*1000
@@ -150,38 +153,24 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def epzConnect(self):
         
-        self.deflData = epz.QtDATA(self.deflEnv)
-        self.torsData = epz.QtDATA(self.torsEnv)
-        self.sumData = epz.QtDATA(self.sumEnv)
-        self.zData = epz.QtDATA(self.zEnv)
+        self.curveData = epz.QtDATA(self.curveEnv)
+        self.monitData = epz.QtDATA(self.monitEnv)
         
-        self.deflCmd = epz.CMD(self.deflEnv)
-        self.torsCmd = epz.CMD(self.torsEnv)
-        self.sumCmd = epz.CMD(self.sumEnv)
-        self.zCmd = epz.CMD(self.zEnv)
+        self.curveCmd = epz.CMD(self.curveEnv)
+        self.monitCmd = epz.CMD(self.monitEnv)
         
-        self.deflData.notify = True
-        self.deflData.save = False
-        self.torsData.notify = True
-        self.torsData.save = False
-        self.sumData.notify = True
-        self.sumData.save = False
-        self.zData.notify = True
-        self.zData.save = False
+        self.curveData.notify = True
+        self.curveData.save = False
+        self.monitData.notify = True
+        self.monitData.save = False
         
-        self.sumData.chunk = CHUNK
-        self.deflData.chunk = CHUNK
-        self.torsData.chunk = CHUNK
-        self.zData.chunk = CHUNK
+        self.curveData.chunk = CHUNK
+        self.monitData.chunk = CHUNK
         
-        self.sumData.start()
-        self.sumCmd.send('g',1)
-        self.deflData.start()
-        self.deflCmd.send('g',1)
-        self.torsData.start()
-        self.torsCmd.send('g',1)
-        self.zData.start()
-        self.zCmd.send('g',1)
+        self.curveData.start()
+        self.curveCmd.send('g',1)
+        self.monitData.start()
+        self.monitCmd.send('g',1)
     
     
     def saveParams(self):
@@ -234,7 +223,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                         value = '\'' + value + '\''
                     eval('self.' + a + lDict[k][2] + value + ')')
         
+    
+    def uploadEpzParam(self):
         
+        culprit = self.sender()
         
         
     def dockMng(self):
@@ -307,40 +299,25 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         else:
             self.sumProg.setValue(newVal)
             self.laserSpot.setSymbolBrush(qg.QColor(int(25.5*newVal),0,0,128))
-    
-    
-    def sendSum(self,v):
-        
-        sumValue = np.max(np.array(v[1]))
-        
-        # CANCELLA NELLA VERSIONE DEFINITIVA
-        sumValue *=10
-        # CANCELLA NELLA VERSIONE DEFINITIVA
-        
-        self.sumNumDbl.setValue(sumValue)
         
         
-    def sendDefl(self,v):
+    def updateQPD(self,v):
         
+        #deflValue = np.max(np.array(v[0])) REAL
         deflValue = np.max(np.array(v[1]))
+        sumValue = np.max(np.array(v[2]))
+        torsValue = np.max(np.array(v[1]))
         
         # CANCELLA NELLA VERSIONE DEFINITIVA
         deflValue *=10
-        # CANCELLA NELLA VERSIONE DEFINITIVA
-        
-        self.deflNumDbl.setValue(deflValue)
-        
-        
-    def sendTors(self,v):
-        
-        torsValue = np.max(np.array(v[2]))
-        
-        # CANCELLA NELLA VERSIONE DEFINITIVA
+        sumValue *=10
         torsValue *=10
         # CANCELLA NELLA VERSIONE DEFINITIVA
         
+        self.deflNumDbl.setValue(deflValue)
         self.torsNumDbl.setValue(torsValue)
-        
+        self.sumNumDbl.setValue(sumValue)
+   
         
     def sendZ(self,v):
         
@@ -466,6 +443,68 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         zPathDial.exec_()
         
         
+    def remotePlay(self):
+        
+        channel = self.channelCmbBox.currentIndex()
+        
+        self.programs[channel]()
+        
+        
+    def remoteStop(self):
+        
+        channel = self.channelCmbBox.currentIndex()
+        
+        if channel == 4 or channel == 6:
+            self.stopMap()
+        else:
+            self.stopSingle()
+    
+    
+    def engage(self):
+        
+        self.channelMng('Calib QPD')
+        self.rdsLine.setText('Engaging...')
+        
+        
+    def calibQPD(self):
+        
+        self.channelMng('Calib K')
+        self.rdsLine.setText('QPD calibration')
+        
+        
+    def calibK(self):
+        
+        self.channelMng('FvsD curve')
+        self.channelMng('FvsD map')
+        self.channelMng('Custom curve')
+        self.channelMng('Custom map')
+        self.rdsLine.setText('Elastic constant calibration')
+        
+    
+    def fvsd(self):
+        self.rdsLine.setText('FvsD curve')
+    
+    
+    def fvsdMap(self):
+        self.rdsLine.setText('FvsD map')
+    
+    
+    def custom(self):
+        self.rdsLine.setText('Custom curve')
+    
+    
+    def customMap(self):
+        self.rdsLine.setText('Custom map')
+    
+    
+    def stopSingle(self):
+        self.rdsLine.setText('')
+    
+    
+    def stopMap(self):
+        self.rdsLine.setText('')
+        
+        
     def actionNdocksConnections(self):
         
         self.action_Motors.changed.connect(self.dockMng)
@@ -494,15 +533,44 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.addSegBtn.clicked.connect(self.addSeg)
         self.removeSegBtn.clicked.connect(self.removeSeg)
         self.updateSegBtn.clicked.connect(self.updateSeg)
-        self.shoZTravelBtn.clicked.connect(self.showDial)
+        self.showZTravelBtn.clicked.connect(self.showDial)
+        self.playBtn.clicked.connect(self.remotePlay)
+        self.stopBtn.clicked.connect(self.remoteStop)
+        
+        # Epz Parameters buttons connections
+        
+        self.uploadSetPtBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadPGainBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadIGainBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadFbBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadKdBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadCalibStimZOffsetBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadCalibStimAmplBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadCalibStimZOffsetBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadCalibStimFreqBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadCalibStimBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadKBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadPkStartFreqBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadPkEndFreqBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadClLenBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadClWidBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadMediumDensBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadMediumViscBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadKCalibBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadMaxFBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadStartZBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadEndZBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadAppSpeedBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadRetrSpeedBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadHoldTimeBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadFvsdBtn.clicked.connect(self.uploadEpzParam)
+        self.uploadStartZcBtn.clicked.connect(self.uploadEpzParam)
         
         
     def epzConnections(self):
         
-        self.sumData.chunkReceived.connect(self.sendSum)
-        self.deflData.chunkReceived.connect(self.sendDefl)
-        self.torsData.chunkReceived.connect(self.sendTors)
-        self.zData.chunkReceived.connect(self.sendZ)
+        self.curveData.chunkReceived.connect(self.sendZ)
+        self.monitData.chunkReceived.connect(self.updateQPD)
         
         
     def genericConnetions(self):
