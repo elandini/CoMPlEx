@@ -26,8 +26,8 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
         self.afmPubPortNum.setValue(int(self.parser.get('CONN', 'afmpubport')))
         self.curveNameLine.setText(self.parser.get('CONN', 'curvename'))
         self.monitNameLine.setText(self.parser.get('CONN', 'monitname')) 
-        self.motorXyPortLine.setText(self.parser.get('CONN', 'xyport'))
-        self.motorZPortLine.setText(self.parser.get('CONN', 'zport'))
+        self.xyCmdTagLine.setText(self.parser.get('CONN', 'xycmd'))
+        self.xyResTagLine.setText(self.parser.get('CONN', 'xyres'))
         
         self.maxPiezoVoltNumDbl.setValue(float(self.parser.get('PIEZO', 'vmax')))
         self.minPiezoVoltNumDbl.setValue(float(self.parser.get('PIEZO', 'vmin')))
@@ -48,8 +48,8 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
         self.parser.set('CONN', 'afmpumport',str(self.afmPubPortNum.value()))
         self.parser.set('CONN', 'curvelname',self.curveNameLine.text())
         self.parser.set('CONN', 'monitname',self.monitNameLine.text())
-        self.parser.set('CONN', 'xyport',self.motorXyPortLine.text())
-        self.parser.set('CONN', 'zport',self.motorZPortLine.text())
+        self.parser.set('CONN', 'xycmd',self.xyCmdTagLine.text())
+        self.parser.set('CONN', 'xyres',self.xyResTagLine.text())
         
         self.parser.set('PIEZO', 'vmax',str(self.maxPiezoVoltNumDbl.value()))
         self.parser.set('PIEZO', 'vmin',str(self.minPiezoVoltNumDbl.value()))

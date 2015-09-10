@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'GUIs\hwConfig_dialog.ui'
 #
-# Created: Tue Sep 08 15:32:43 2015
+# Created: Thu Sep 10 18:59:47 2015
 #      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
@@ -71,15 +71,15 @@ class Ui_hwConfig_dialog(object):
         self.label_3 = QtGui.QLabel(self.groupBox)
         self.label_3.setObjectName(_fromUtf8("label_3"))
         self.formLayout.setWidget(5, QtGui.QFormLayout.LabelRole, self.label_3)
-        self.motorXyPortLine = QtGui.QLineEdit(self.groupBox)
-        self.motorXyPortLine.setObjectName(_fromUtf8("motorXyPortLine"))
-        self.formLayout.setWidget(5, QtGui.QFormLayout.FieldRole, self.motorXyPortLine)
+        self.xyCmdTagLine = QtGui.QLineEdit(self.groupBox)
+        self.xyCmdTagLine.setObjectName(_fromUtf8("xyCmdTagLine"))
+        self.formLayout.setWidget(5, QtGui.QFormLayout.FieldRole, self.xyCmdTagLine)
         self.label_4 = QtGui.QLabel(self.groupBox)
         self.label_4.setObjectName(_fromUtf8("label_4"))
         self.formLayout.setWidget(6, QtGui.QFormLayout.LabelRole, self.label_4)
-        self.motorZPortLine = QtGui.QLineEdit(self.groupBox)
-        self.motorZPortLine.setObjectName(_fromUtf8("motorZPortLine"))
-        self.formLayout.setWidget(6, QtGui.QFormLayout.FieldRole, self.motorZPortLine)
+        self.xyResTagLine = QtGui.QLineEdit(self.groupBox)
+        self.xyResTagLine.setObjectName(_fromUtf8("xyResTagLine"))
+        self.formLayout.setWidget(6, QtGui.QFormLayout.FieldRole, self.xyResTagLine)
         self.verticalLayout.addWidget(self.groupBox)
         self.groupBox_2 = QtGui.QGroupBox(hwConfig_dialog)
         self.groupBox_2.setObjectName(_fromUtf8("groupBox_2"))
@@ -180,8 +180,8 @@ class Ui_hwConfig_dialog(object):
         self.label_14.setText(_translate("hwConfig_dialog", "AFM Pub Port", None))
         self.label_15.setText(_translate("hwConfig_dialog", "High res. device name", None))
         self.label_16.setText(_translate("hwConfig_dialog", "Monitor device name", None))
-        self.label_3.setText(_translate("hwConfig_dialog", "Motors XY Port", None))
-        self.label_4.setText(_translate("hwConfig_dialog", "Motors Z Port", None))
+        self.label_3.setText(_translate("hwConfig_dialog", "XY CMD Tag", None))
+        self.label_4.setText(_translate("hwConfig_dialog", "XY RES Tag", None))
         self.groupBox_2.setTitle(_translate("hwConfig_dialog", "Piezo settings", None))
         self.label_5.setText(_translate("hwConfig_dialog", "Max Piezo voltage [V]", None))
         self.label_6.setText(_translate("hwConfig_dialog", "Min Piezo voltage [V]", None))

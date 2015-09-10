@@ -87,6 +87,37 @@ class CMD(object):
         self.socket.send_string(msg)
 
 
+class SkelCMDREC(object):
+    def __init__(self, environment):
+        self.context = environment.context
+        self.subport = environment.subport
+        self.epserver = environment.epserver
+        self.tag = 'RES'
+        self.listen = True
+        self.device = environment.device
+        
+
+    def setZmq(self):
+        
+        self.socket = self.context.socket(zmq.SUB)
+        self.head = "{0}:{1}:".format(self.device,self.tag)
+        self.socket.setsockopt_string(zmq.SUBSCRIBE,self.head)
+        self.socket.connect("tcp://{0}:{1}".format(self.epserver, self.subport))
+        
+        
+    def react(self,resp):
+        pass
+        
+        
+    def run(self):
+        self.setZmq()
+        
+        while self.listen:
+            body = self.socket.recv_string()
+            resp = body.strip(self.head)
+            self.react(resp)
+
+
 class Skeldata(object):
 
     def __init__(self, environment, device=None):
@@ -101,6 +132,8 @@ class Skeldata(object):
         self.goahead = True
         self.decimate = 1
         self.chunk = 10000
+        self.notifyLength = 1000
+        self.tick = self.notifyLength
         self.x = []
         self.y = []
         self.z = []
@@ -142,6 +175,9 @@ class Skeldata(object):
     def actondata(self,v):
         pass
 
+    def actOnValue(self):
+        pass
+
     def switchState(self,state):
         pass
 
@@ -166,6 +202,12 @@ class Skeldata(object):
 
             if self.save:
                 self.queue[-1].put(data)
+
+            self.tick -= 1
+            if self.tick == 0:
+                self.actOnValue(data)
+                self.tick = self.notifyLength
+
             if self.notify:
                 self.x.append(data[0])
                 self.y.append(data[1])
@@ -182,6 +224,15 @@ class DATA(Skeldata, threading.Thread):
     def __init__(self,environment):
         threading.Thread.__init__(self)
         Skeldata.__init__(self, environment)
+        
+
+class CMDREC(SkelCMDREC,threading.Thread):
+    
+    def __init__(self,environment):
+        
+        threading.Thread.__init__(self)
+        SkelCMDREC.__init__(self, environment)        
+
 
 try:
     from PyQt4.QtCore import pyqtSignal, QThread
@@ -195,6 +246,11 @@ try:
         stateChanged = pyqtSignal(bool, name='stateChanged')
         overloadChanged = pyqtSignal(bool, name='overloadChanged')
 
+        def actOnValue(self,data):
+            self.xDataReceived.emit(data[0])
+            self.yDataReceived.emit(data[1])
+            self.zDataReceived.emit(data[2])
+
         def switchState(self,state):
             self.stateChanged.emit(state)
 
@@ -207,9 +263,22 @@ try:
 
         def actondata(self,v):
             self.chunkReceived.emit(v)
-            self.xDataReceived.emit(v[0][-1])
-            self.yDataReceived.emit(v[1][-1])
-            self.zDataReceived.emit(v[2][-1])
+            
+            
+    class QtCMDREC(SkelCMDREC,QThread):
+        
+        respReceived = pyqtSignal(str,name='respReceived')
+        
+        def __init__(self,environment):
+            
+            QThread.__init__(self)
+            CMDREC.__init__(self, environment)
+            
+        
+        def react(self,resp):
+            
+            self.respReceived.emit(resp)
+
 
 except ImportError:
     pass

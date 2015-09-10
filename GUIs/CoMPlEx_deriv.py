@@ -121,6 +121,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.forwarderSubPort = parser.get('CONN','afmsubport')
         self.curveName = parser.get('CONN','curvename')
         self.monitName = parser.get('CONN','monitname')
+        self.xyCmdTag = parser.get('CONN','xycmd')
+        self.xyResTag = parser.get('CONN','xyres')
         
         self.curveEnv.pubport = self.forwarderPubPort
         self.curveEnv.subport = self.forwarderSubPort
@@ -159,6 +161,12 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveCmd = epz.CMD(self.curveEnv)
         self.monitCmd = epz.CMD(self.monitEnv)
         
+        self.xyCmd = epz.CMD(self.monitEnv)
+        self.xyCmd.command = self.xyCmdTag
+        
+        self.xyRes = epz.QtCMDREC(self.monitEnv)
+        self.xyRes.tag = self.xyResTag
+        
         self.curveData.notify = True
         self.curveData.save = False
         self.monitData.notify = True
@@ -171,6 +179,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveCmd.send('g',1)
         self.monitData.start()
         self.monitCmd.send('g',1)
+        self.xyRes.start()
     
     
     def saveParams(self):
@@ -351,11 +360,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         seg['zLim'] = self.endZcNumDbl.value()
         seg['fLim'] = self.endFcNumDbl.value()
-        seg['ptNum'] = self.ptNumcNum.value()
         seg['speed'] = self.speedcNumDbl.value()
-        seg['direction'] = self.dircCmbBox.currentIndex()
+        seg['direction'] = self.getDir()
         seg['holdT'] = self.holdTimecNumDbl.value()
-        seg['fbOn'] = self.constForcecCkBox.isChecked()
         
         self.custFvsdSegs.append(seg)
         
@@ -383,26 +390,72 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             self.showSeg()
         
         
+    def setDir(self,ind):
+        
+        directioners = [self.altZSegBtn,self.altFSegBtn,self.farSegBtn,self.nearSegBtn]
+        
+        i = 0
+        for d in directioners:
+            d.setEnabled(ind != i)
+            i+=1
+        
+        
+    def getDir(self):
+        
+        direction = (not self.altZSegBtn.isEnabled())*0 + (not self.altFSegBtn.isEnabled())*1 + (not self.farSegBtn.isEnabled())*2 + (not self.nearSegBtn.isEnabled())*3
+        return direction
+        
+        
+    def changeDir(self):
+        
+        culprit = self.sender()
+        directioners = [self.altZSegBtn,self.altFSegBtn,self.farSegBtn,self.nearSegBtn]
+        
+        direction = directioners.index(culprit)
+        del directioners[direction]
+        
+        culprit.setEnabled(False)
+        
+        for d in directioners:
+            d.setEnabled(True)
+        
+        if direction>1:
+            self.holdTimecNumDbl.setValue(0)
+            self.holdTimecNumDbl.setEnabled(False)
+            self.endZcNumDbl.setEnabled(True)
+            self.endFcNumDbl.setEnabled(True)
+            self.speedcNumDbl.setEnabled(True)
+        else:
+            self.endZcNumDbl.setValue(0)
+            self.endFcNumDbl.setValue(0)
+            self.speedcNumDbl.setValue(0)
+            self.endZcNumDbl.setEnabled(False)
+            self.endFcNumDbl.setEnabled(False)
+            self.speedcNumDbl.setEnabled(False)
+            self.holdTimecNumDbl.setEnabled(True)
+        
+        
     def showSeg(self):
+        
+        directioners = [self.altZSegBtn,self.altFSegBtn,self.farSegBtn,self.nearSegBtn]
+        
         if self.segCmbBox.count()==0:
             self.endZcNumDbl.setValue(0)
             self.endFcNumDbl.setValue(0)
-            self.ptNumcNum.setValue(0)
             self.speedcNumDbl.setValue(0)
-            self.dircCmbBox.setCurrentIndex(0)
             self.holdTimecNumDbl.setValue(0)
-            self.constForcecCkBox.setChecked(False)
+            
+            for d in directioners:
+                d.setEnabled(True)
             
             return None
-         
+        
         seg = self.custFvsdSegs[self.segCmbBox.currentIndex()]
-        self.dircCmbBox.setCurrentIndex(seg['direction'])
         self.endZcNumDbl.setValue(seg['zLim'])
         self.endFcNumDbl.setValue(seg['fLim'])
-        self.ptNumcNum.setValue(seg['ptNum'])
         self.speedcNumDbl.setValue(seg['speed'])
         self.holdTimecNumDbl.setValue(seg['holdT'])
-        self.constForcecCkBox.setChecked(seg['fbOn'])
+        self.setDir(seg['direction'])
         
         
     def updateSeg(self):
@@ -411,30 +464,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.custFvsdSegs[ind]['zLim'] = self.endZcNumDbl.value()
         self.custFvsdSegs[ind]['fLim'] = self.endFcNumDbl.value()
-        self.custFvsdSegs[ind]['ptNum'] = self.ptNumcNum.value()
         self.custFvsdSegs[ind]['speed'] = self.speedcNumDbl.value()
-        self.custFvsdSegs[ind]['direction'] = self.dircCmbBox.currentIndex()
+        self.custFvsdSegs[ind]['direction'] = self.getDir()
         self.custFvsdSegs[ind]['holdT'] = self.holdTimecNumDbl.value()
-        self.custFvsdSegs[ind]['fbOn'] = self.constForcecCkBox.isChecked()
-        
-        
-    def guideSeg(self):
-        
-        culprit = self.sender()
-        ind = culprit.currentIndex()
-        
-        seg = self.segCmbBox.count()
-        
-        self.speedcNumDbl.setEnabled(ind!=2)
-        self.constForcecCkBox.setEnabled(ind==2)
-        self.holdTimecNumDbl.setEnabled(ind==2)
-        
-        if ind == 2:
-            zOld = self.custFvsdSegs[seg-1]['zLim'] if seg>0 else self.startZcNumDbl.value()
-            self.endZcNumDbl.setValue(zOld)
-            self.endZcNumDbl.setEnabled(False)
-        else:
-            self.endZcNumDbl.setEnabled(True)
+        self.custFvsdSegs[ind]['fbOn'] = self.altFSegBtn.isChecked()
             
             
     def plotSeg(self):
@@ -566,6 +599,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.uploadFvsdBtn.clicked.connect(self.uploadEpzParam)
         self.uploadStartZcBtn.clicked.connect(self.uploadEpzParam)
         
+        self.altZSegBtn.clicked.connect(self.changeDir)
+        self.altFSegBtn.clicked.connect(self.changeDir)
+        self.farSegBtn.clicked.connect(self.changeDir)
+        self.nearSegBtn.clicked.connect(self.changeDir)
+        
         
     def epzConnections(self):
         
@@ -581,7 +619,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.zPiezoNumDbl.valueChanged.connect(self.zMonitProg)
         self.browseBtn.clicked.connect(self.getDataDir)
         self.segCmbBox.currentIndexChanged.connect(self.showSeg)
-        self.dircCmbBox.currentIndexChanged.connect(self.guideSeg)
         
         
         
