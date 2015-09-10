@@ -5,6 +5,7 @@ from GUIs.zPath_deriv import *
 from threading import Thread
 
 import PyQt4.QtGui as qg
+from PyQt4 import QtCore
 from PyQt4.QtGui import QDialog, QFileDialog
 from PyQt4.QtGui import QMainWindow
 import pyqtgraph as pg
@@ -21,6 +22,12 @@ pg.setConfigOption('foreground', 'k')
 
 from libs.epz import epz
 
+try:
+    _fromUtf8 = QtCore.QString.fromUtf8
+except AttributeError:
+    def _fromUtf8(s):
+        return s
+
 CHUNK = 20
 
 class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
@@ -31,6 +38,22 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     
         super(CoMPlEx_main,self).__init__(parent)
         self.setupUi(self)
+        
+        icon = qg.QIcon()
+        icon.addPixmap(qg.QPixmap(_fromUtf8("GUIs/Icons/altZ.bmp")), qg.QIcon.Normal, qg.QIcon.Off)
+        self.altZSegBtn.setIcon(icon)
+        
+        icon1 = qg.QIcon()
+        icon1.addPixmap(qg.QPixmap(_fromUtf8("GUIs/Icons/altF.bmp")), qg.QIcon.Normal, qg.QIcon.Off)
+        self.altFSegBtn.setIcon(icon1)
+        
+        icon2 = qg.QIcon()
+        icon2.addPixmap(qg.QPixmap(_fromUtf8("GUIs/Icons/far.bmp")), qg.QIcon.Normal, qg.QIcon.Off)
+        self.farSegBtn.setIcon(icon2)
+        
+        icon3 = qg.QIcon()
+        icon3.addPixmap(qg.QPixmap(_fromUtf8("GUIs/Icons/near.bmp")), qg.QIcon.Normal, qg.QIcon.Off)
+        self.nearSegBtn.setIcon(icon3)
         
         self.actionNdockDict = {self.action_Motors:[self.motorsDock,'isChecked','setVisible','visibilityChanged'],
                                 self.action_Settings:[self.settingsDock,'isChecked','setVisible','visibilityChanged'],
@@ -491,6 +514,20 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             self.stopMap()
         else:
             self.stopSingle()
+    
+    
+    def sendMotorCmd(self):
+        
+        culprit = self.sender()
+        
+        cmdDict = {self.xPlusBtn: ['M',[self.xStepNumNum.value(),0]],
+                    self.xMinusBtn: ['M',[-1*self.xStepNumNum.value(),0]],
+                    self.yPlusBtn: ['M',[0,self.yStepNumNum.value()]],
+                    self.yMinusBtn: ['M',[0,-1*self.yStepNumNum.value()]],
+                    self.goCenterBtn: ['GZ',[]],
+                    self.resetXYBtn: ['SZ',[]]}
+        
+        self.xyCmd.send(cmdDict[culprit][0],cmdDict[culprit][1])
     
     
     def engage(self):
