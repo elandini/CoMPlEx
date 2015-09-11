@@ -1,4 +1,4 @@
-import ConfigParser
+import configparser as ConfigParser
 import logging
 INIFILE = 'defaults.ini'
 class mvobject:

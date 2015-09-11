@@ -21,6 +21,7 @@ pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
 
 from libs.epz import epz
+from libs.curveLib import curve,segment
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -86,6 +87,14 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveEnv = epz.Environment()
         self.monitEnv = epz.Environment()
         
+        self.currentSpeed = 0.0
+        self.currentDirection = 'far'
+        self.currentType = 'Zconst'
+        self.currentCurve = None
+        self.currentCurveNum = 0
+        self.currentPtNum = 0
+        self.saveMe = False
+        
         self.applyConfig()
         self.epzConnect()
         self.epzConnections()
@@ -138,6 +147,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.deflSign = (-1)**(int(parser.get('OTHER','deflsign')))
         self.iGainNumDbl.setMaximum(float(parser.get('OTHER','imax')))
         self.pGainNumDbl.setMaximum(float(parser.get('OTHER','pmax')))
+        self.baseCurveName = parser.get('OTHER','defbasename')
+        self.curveDir = parser.get('OTHER','defdir')
         
         self.forwarderIP = parser.get('CONN','afmip')
         self.forwarderPubPort = parser.get('CONN','afmpubport')
@@ -158,6 +169,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         zM = float(parser.get('PIEZO','zmax'))*1000
         zm = float(parser.get('PIEZO','zmin'))*1000
+        
+        zvM = float(parser.get('PIEZO','vmax'))
+        zvm = float(parser.get('PIEZO','vmin'))
+        
+        self.zVtoNm = lambda x: ((x-zvm)/(zvM-zvm)*(zM-zm)+zm) 
         
         self.endZNumDbl.setMaximum(zM)
         self.endZcNumDbl.setMaximum(zM)
@@ -375,6 +391,29 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def startAnalyzing(self):
         
         p = Popen('python3 '+self.simplePath)
+    
+    
+    def getStandardSeg(self):
+        
+        stdSegments = []
+        
+        seg = {}
+        
+        seg['zLim'] = self.endZNumDbl.value()
+        seg['fLim'] = self.endFNumDbl.value()
+        seg['speed'] = self.appSpeedNumDbl.value()
+        seg['direction'] = 3
+        seg['holdT'] = 0
+        
+        stdSegments.append(seg)
+        
+        seg = {}
+        
+        seg['zLim'] = self.endZNumDbl.value()
+        seg['fLim'] = self.endFNumDbl.value()
+        seg['speed'] = self.appSpeedNumDbl.value()
+        seg['direction'] = 3
+        seg['holdT'] = 0
         
         
     def addSeg(self):
@@ -468,6 +507,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             self.speedcNumDbl.setValue(0)
             self.holdTimecNumDbl.setValue(0)
             
+            self.endZcNumDbl.setEnabled(True)
+            self.endFcNumDbl.setEnabled(True)
+            self.speedcNumDbl.setEnabled(True)
+            self.holdTimecNumDbl.setEnabled(True)
+            
             for d in directioners:
                 d.setEnabled(True)
             
@@ -516,7 +560,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             self.stopSingle()
     
     
-    def sendMotorCmd(self):
+    def motorRemoteCmd(self):
         
         culprit = self.sender()
         
@@ -528,6 +572,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                     self.resetXYBtn: ['SZ',[]]}
         
         self.xyCmd.send(cmdDict[culprit][0],cmdDict[culprit][1])
+        
+        
+    def makeAstep(self,step1,step2):
+        
+        self.xyCmd.send('M',[step1,step2])
     
     
     def engage(self):
@@ -549,6 +598,60 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.channelMng('Custom curve')
         self.channelMng('Custom map')
         self.rdsLine.setText('Elastic constant calibration')
+        
+    
+    def startExperiment(self):
+        
+        culprit = self.sender()
+        self.xyCmd.send('GZ',[])
+        
+        self.currentCurve = curve.curve()
+        if not exists(self.dirLine.text()):
+            makedirs(self.dirLine.text())
+        self.currentCurvePath = join(self.dirLine.text(),(self.fileNameRootLine+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
+        
+        savingT = Thread(self.saveSegment)
+        savingT.start()
+        
+    
+    
+    def saveSegment(self):
+        while self.expInProgress:
+            if self.saveMe:
+                tempQueue = self.curveData.queue[0]
+                del self.curveData.queue[0]
+                self.newz,self.newf = self.emptyDataQueue(tempQueue)
+                emptySeg = segment.segment(self.newz,self.newf)
+                emptySeg.k = self.kNumDbl.value()
+                emptySeg.speed = self.currentSpeed
+                emptySeg.direction = self.currentDirection
+                emptySeg.type = self.currentType
+        
+                curve.append(emptySeg)
+                curve.save(self.currentCurvePath)
+                
+                self.saveMe = False
+    
+    
+    def emptyDataQueue(self,q):
+        
+        t,zv,fv = []
+        while q.qsize()>0:
+            temp = q.get()
+            t.append(temp[0])
+            zv.append(temp[1])
+            fv.append(temp[2])
+        z = self.zVtoNm(np.array(zv))
+        f = np.array(fv)*self.kNumDbl.value()*self.kdNumDbl.value()
+        
+        return z,f
+    
+        
+    def segmentDone(self):
+        
+        self.saveMe = True
+        
+        pass
         
     
     def fvsd(self):
@@ -640,6 +743,13 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.altFSegBtn.clicked.connect(self.changeDir)
         self.farSegBtn.clicked.connect(self.changeDir)
         self.nearSegBtn.clicked.connect(self.changeDir)
+        
+        self.xPlusBtn.clicked.connect(self.motorRemoteCmd)
+        self.xMinusBtn.clicked.connect(self.motorRemoteCmd)
+        self.yPlusBtn.clicked.connect(self.motorRemoteCmd)
+        self.yMinusBtn.clicked.connect(self.motorRemoteCmd)
+        self.goCenterBtn.clicked.connect(self.motorRemoteCmd)
+        self.resetXYBtn.clicked.connect(self.motorRemoteCmd)
         
         
     def epzConnections(self):

@@ -1,5 +1,5 @@
-import mvobject
-import segment
+import libs.curveLib.mvobject as mvobject
+import libs.curveLib.segment
 import logging
 import importlib
 import os
@@ -72,13 +72,16 @@ class curve(mvobject.mvobject):
         for s in segments:
             self.append(s)
 
-    def save(self,fname=None):
+    def save(self,fname=None,newly = False):
         """
         Save the curve in a TXT format compatible with the text export format of JPK IP and DP programs
         """
         if fname == None:
             return False
 
+        if newly:
+            self.savedSeg = 0
+        
         if self.savedSeg == 0:
             out_file = open(str(fname),"w")
             out_file.write("# TEXT EXPORT\n")
@@ -91,9 +94,9 @@ class curve(mvobject.mvobject):
             out_file.write("#\n")
         else:
             out_file = open(str(fname),"a")
-            
+          
         i=self.savedSeg
-        for p in self.segments:
+        for p in self.segments[self.savedSeg:]:
             if i != 0:
                 out_file.write("\n")
             out_file.write("#\n")
@@ -166,5 +169,5 @@ class curve(mvobject.mvobject):
             
     
 if __name__ == "__main__":
-    print 'not for direct use'
+    print('not for direct use')
         

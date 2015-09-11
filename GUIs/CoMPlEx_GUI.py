@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'GUIs\CoMPlEx_GUI.ui'
 #
-# Created: Thu Sep 10 22:56:11 2015
+# Created: Fri Sep 11 16:53:23 2015
 #      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
@@ -1123,8 +1123,8 @@ class Ui_CoMPlEx_GUI(object):
         self.uploadMaxFBtn.setText(_translate("CoMPlEx_GUI", "Upload", None))
         self.functionsTabs.setTabText(self.functionsTabs.indexOf(self.fvsdTab), _translate("CoMPlEx_GUI", "FvsD", None))
         self.removeSegBtn.setText(_translate("CoMPlEx_GUI", "Remove", None))
-        self.label_31.setText(_translate("CoMPlEx_GUI", "End Force [pN]", None))
-        self.label_30.setText(_translate("CoMPlEx_GUI", "End Z [nm]", None))
+        self.label_31.setText(_translate("CoMPlEx_GUI", "Force step [pN]", None))
+        self.label_30.setText(_translate("CoMPlEx_GUI", "Z step [nm]", None))
         self.label_29.setText(_translate("CoMPlEx_GUI", "Start Z [nm]", None))
         self.label_45.setText(_translate("CoMPlEx_GUI", "Curves number", None))
         self.label_35.setText(_translate("CoMPlEx_GUI", "Hold Time [s]", None))

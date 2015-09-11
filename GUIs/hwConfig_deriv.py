@@ -39,6 +39,8 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
         self.sumThrNumDbl.setValue(float(self.parser.get('OTHER', 'sumthr')))
         self.iGainMaxNumDbl.setValue(float(self.parser.get('OTHER', 'imax')))
         self.pGainMaxNumDbl.setValue(float(self.parser.get('OTHER', 'pmax')))
+        self.defDirLine.setText(self.parser.get('OTHER', 'defdir'))
+        self.defBaseNameLine.setText(self.parser.get('OTHER', 'defbasename'))
     
     
     def saveControls(self):
@@ -61,6 +63,8 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
         self.parser.set('OTHER', 'sumthr',str(self.sumThrNumDbl.value()))
         self.parser.set('OTHER', 'imax',str(self.iGainMaxNumDbl.value()))
         self.parser.set('OTHER', 'pmax',str(self.pGainMaxNumDbl.value()))
+        self.parser.set('OTHER', 'defdir', self.defDirLine.text())
+        self.parser.set('OTHER', 'defbasename', self.defBaseNameLine.text())
         
         warningDial = QMessageBox(self)
         warningDial.setWindowTitle('Saving...')

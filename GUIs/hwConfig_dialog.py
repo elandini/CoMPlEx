@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'GUIs\hwConfig_dialog.ui'
 #
-# Created: Thu Sep 10 18:59:47 2015
+# Created: Fri Sep 11 10:47:13 2015
 #      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
@@ -145,17 +145,29 @@ class Ui_hwConfig_dialog(object):
         self.label_12 = QtGui.QLabel(self.groupBox_3)
         self.label_12.setObjectName(_fromUtf8("label_12"))
         self.formLayout_3.setWidget(2, QtGui.QFormLayout.LabelRole, self.label_12)
-        self.label_13 = QtGui.QLabel(self.groupBox_3)
-        self.label_13.setObjectName(_fromUtf8("label_13"))
-        self.formLayout_3.setWidget(3, QtGui.QFormLayout.LabelRole, self.label_13)
         self.iGainMaxNumDbl = QtGui.QDoubleSpinBox(self.groupBox_3)
         self.iGainMaxNumDbl.setMaximum(100000.0)
         self.iGainMaxNumDbl.setObjectName(_fromUtf8("iGainMaxNumDbl"))
         self.formLayout_3.setWidget(2, QtGui.QFormLayout.FieldRole, self.iGainMaxNumDbl)
+        self.label_13 = QtGui.QLabel(self.groupBox_3)
+        self.label_13.setObjectName(_fromUtf8("label_13"))
+        self.formLayout_3.setWidget(3, QtGui.QFormLayout.LabelRole, self.label_13)
         self.pGainMaxNumDbl = QtGui.QDoubleSpinBox(self.groupBox_3)
         self.pGainMaxNumDbl.setMaximum(100000.0)
         self.pGainMaxNumDbl.setObjectName(_fromUtf8("pGainMaxNumDbl"))
         self.formLayout_3.setWidget(3, QtGui.QFormLayout.FieldRole, self.pGainMaxNumDbl)
+        self.defBaseNameLine = QtGui.QLineEdit(self.groupBox_3)
+        self.defBaseNameLine.setObjectName(_fromUtf8("defBaseNameLine"))
+        self.formLayout_3.setWidget(5, QtGui.QFormLayout.FieldRole, self.defBaseNameLine)
+        self.defDirLine = QtGui.QLineEdit(self.groupBox_3)
+        self.defDirLine.setObjectName(_fromUtf8("defDirLine"))
+        self.formLayout_3.setWidget(4, QtGui.QFormLayout.FieldRole, self.defDirLine)
+        self.label_17 = QtGui.QLabel(self.groupBox_3)
+        self.label_17.setObjectName(_fromUtf8("label_17"))
+        self.formLayout_3.setWidget(4, QtGui.QFormLayout.LabelRole, self.label_17)
+        self.label_18 = QtGui.QLabel(self.groupBox_3)
+        self.label_18.setObjectName(_fromUtf8("label_18"))
+        self.formLayout_3.setWidget(5, QtGui.QFormLayout.LabelRole, self.label_18)
         self.verticalLayout.addWidget(self.groupBox_3)
         self.saveNcancBtnBox = QtGui.QDialogButtonBox(hwConfig_dialog)
         self.saveNcancBtnBox.setOrientation(QtCore.Qt.Horizontal)
@@ -197,4 +209,6 @@ class Ui_hwConfig_dialog(object):
         self.label_11.setText(_translate("hwConfig_dialog", "Sum Threshold [V]", None))
         self.label_12.setText(_translate("hwConfig_dialog", "Integral Gain Max", None))
         self.label_13.setText(_translate("hwConfig_dialog", "Proportional Gain Max", None))
+        self.label_17.setText(_translate("hwConfig_dialog", "Default data directory", None))
+        self.label_18.setText(_translate("hwConfig_dialog", "Default file base name", None))
 
