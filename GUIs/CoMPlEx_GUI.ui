@@ -1082,7 +1082,17 @@
           </widget>
          </item>
          <item row="1" column="1">
-          <widget class="QDoubleSpinBox" name="kdNumDbl"/>
+          <widget class="QDoubleSpinBox" name="kdNumDbl">
+           <property name="minimum">
+            <double>1.000000000000000</double>
+           </property>
+           <property name="maximum">
+            <double>1000.000000000000000</double>
+           </property>
+           <property name="value">
+            <double>1.000000000000000</double>
+           </property>
+          </widget>
          </item>
          <item row="1" column="2">
           <widget class="QPushButton" name="uploadKdBtn">
@@ -1307,7 +1317,14 @@
           <widget class="QDoubleSpinBox" name="clWidNumDbl"/>
          </item>
          <item row="0" column="1">
-          <widget class="QDoubleSpinBox" name="kNumDbl"/>
+          <widget class="QDoubleSpinBox" name="kNumDbl">
+           <property name="minimum">
+            <double>1.000000000000000</double>
+           </property>
+           <property name="maximum">
+            <double>1000.000000000000000</double>
+           </property>
+          </widget>
          </item>
          <item row="9" column="0">
           <widget class="QLabel" name="label_21">

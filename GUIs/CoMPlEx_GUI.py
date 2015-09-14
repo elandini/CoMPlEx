@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'GUIs\CoMPlEx_GUI.ui'
 #
-# Created: Fri Sep 11 16:53:23 2015
+# Created: Mon Sep 14 12:10:40 2015
 #      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
@@ -536,6 +536,9 @@ class Ui_CoMPlEx_GUI(object):
         self.line_4.setObjectName(_fromUtf8("line_4"))
         self.gridLayout_5.addWidget(self.line_4, 2, 0, 1, 3)
         self.kdNumDbl = QtGui.QDoubleSpinBox(self.calibQpdTab)
+        self.kdNumDbl.setMinimum(1.0)
+        self.kdNumDbl.setMaximum(1000.0)
+        self.kdNumDbl.setProperty("value", 1.0)
         self.kdNumDbl.setObjectName(_fromUtf8("kdNumDbl"))
         self.gridLayout_5.addWidget(self.kdNumDbl, 1, 1, 1, 1)
         self.uploadKdBtn = QtGui.QPushButton(self.calibQpdTab)
@@ -653,6 +656,8 @@ class Ui_CoMPlEx_GUI(object):
         self.clWidNumDbl.setObjectName(_fromUtf8("clWidNumDbl"))
         self.gridLayout_6.addWidget(self.clWidNumDbl, 5, 1, 1, 1)
         self.kNumDbl = QtGui.QDoubleSpinBox(self.calibKTab)
+        self.kNumDbl.setMinimum(1.0)
+        self.kNumDbl.setMaximum(1000.0)
         self.kNumDbl.setObjectName(_fromUtf8("kNumDbl"))
         self.gridLayout_6.addWidget(self.kNumDbl, 0, 1, 1, 1)
         self.label_21 = QtGui.QLabel(self.calibKTab)

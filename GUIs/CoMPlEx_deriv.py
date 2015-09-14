@@ -68,7 +68,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.custFvsdSegs = []
         
         self.programs = [self.engage,self.calibQPD,self.calibK,self.fvsd,self.fvsdMap,self.custom,self.customMap]
-        self.stops = [self.stopSingle,self.stopMap]
         
         self.cfgFile = str(QFileDialog.getOpenFileName(self,'Select a configuration file',filter='Ini (*.ini)'))
         if self.cfgFile == '':
@@ -94,6 +93,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.currentCurveNum = 0
         self.currentPtNum = 0
         self.saveMe = False
+        
+        self.expInProgress = False
         
         self.applyConfig()
         self.epzConnect()
@@ -173,7 +174,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         zvM = float(parser.get('PIEZO','vmax'))
         zvm = float(parser.get('PIEZO','vmin'))
         
-        self.zVtoNm = lambda x: ((x-zvm)/(zvM-zvm)*(zM-zm)+zm) 
+        self.zVtoNm = lambda x: ((x-zvm)/(zvM-zvm)*(zM-zm)+zm)
+        self.zNmtoV = lambda x: ((x-zm)/(zM-zm)*(zvM-zvm)+zvm) 
         
         self.endZNumDbl.setMaximum(zM)
         self.endZcNumDbl.setMaximum(zM)
@@ -187,6 +189,13 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.calibStimZOffsetNumDbl.setMinimum(zm)
         self.nearFar = (-1)**(int(parser.get('PIEZO','nearfar')))
         self.zPiezoProg.setInvertedAppearance(self.nearFar<0)
+        
+        self.maxFNumDbl.setMaximum(10)
+        self.maxFNumDbl.setMinimum(-10)
+        self.setPtNumDbl.setMaximum(10)
+        self.setPtNumDbl.setMinimum(-10)
+        self.endFcNumDbl.setMaximum(10)
+        self.endFcNumDbl.setMinimum(-10)
         
         self.simplePath = parser.get('SIMPLE','path')
         self.action_Open_SiMPlE.setEnabled(len(self.simplePath) > 2)
@@ -277,6 +286,18 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         culprit = self.sender()
         
         
+    def changeRefDefl(self):
+        
+        self.maxFNumDbl.setMaximum(10*self.kdNumDbl.value()*self.kNumDbl.value())
+        self.maxFNumDbl.setMinimum(-10*self.kdNumDbl.value()*self.kNumDbl.value())
+        self.setPtNumDbl.setMaximum(10*self.kdNumDbl.value()*self.kNumDbl.value())
+        self.setPtNumDbl.setMinimum(-10*self.kdNumDbl.value()*self.kNumDbl.value())
+        self.endFcNumDbl.setMaximum(10*self.kdNumDbl.value()*self.kNumDbl.value())
+        self.endFcNumDbl.setMinimum(-10*self.kdNumDbl.value()*self.kNumDbl.value())
+        
+        self.label_7.setText('Set Point[V]' if self.kdNumDbl.value() == 1 else ('Set Point[nm]' if self.kNumDbl.value() == 1 else 'Set Point[pN]'))
+        
+        
     def dockMng(self):
         
         culprit = self.sender()
@@ -299,7 +320,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         if culprit is self.action_Edit_config:
             self.hwDial.exec_()
-        elif culprit is self.shoZTravelBtn:
+        elif culprit is self.showZTravelBtn:
             self.plotSeg()
     
     
@@ -369,7 +390,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def sendZ(self,v):
         
-        zValue = np.max(np.array(v[1]))
+        zValue = v
         
         # CANCELLA NELLA VERSIONE DEFINITIVA
         zValue *=10
@@ -400,7 +421,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         seg = {}
         
         seg['zLim'] = self.endZNumDbl.value()
-        seg['fLim'] = self.endFNumDbl.value()
+        seg['fLim'] = self.maxFNumDbl.value()
         seg['speed'] = self.appSpeedNumDbl.value()
         seg['direction'] = 3
         seg['holdT'] = 0
@@ -409,11 +430,25 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         seg = {}
         
-        seg['zLim'] = self.endZNumDbl.value()
-        seg['fLim'] = self.endFNumDbl.value()
+        seg['zLim'] = 0
+        seg['fLim'] = 0
+        seg['speed'] = 0
+        seg['direction'] = 1 if self.constForceCkBox.isChecked() else 0 
+        seg['holdT'] = self.holdTimeNumDbl.value()
+        
+        stdSegments.append(seg)
+        
+        seg = {}
+        
+        seg['zLim'] = self.startZNumDbl.value()
+        seg['fLim'] = self.maxFNumDbl.minimum()
         seg['speed'] = self.appSpeedNumDbl.value()
-        seg['direction'] = 3
+        seg['direction'] = 2
         seg['holdT'] = 0
+        
+        stdSegments.append(seg)
+        
+        return stdSegments
         
         
     def addSeg(self):
@@ -554,10 +589,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         channel = self.channelCmbBox.currentIndex()
         
-        if channel == 4 or channel == 6:
-            self.stopMap()
+        if channel <3:
+            self.goToRest()
         else:
-            self.stopSingle()
+            self.stopExperiment()
     
     
     def motorRemoteCmd(self):
@@ -598,21 +633,85 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.channelMng('Custom curve')
         self.channelMng('Custom map')
         self.rdsLine.setText('Elastic constant calibration')
+    
+    '''
+    public List<simplePoint> createSpiral(double delta1, double delta2, double pointsNr)
+        {
+            List<simplePoint> Spiral = new List<simplePoint>();
+            simplePoint p1=new simplePoint(0,delta2);
+            double angolo=0;
+            int limite=1;
+            int conto=0;
+            
+            for(int i=0; i<pointsNr; i++)
+            {
+                p1 = new simplePoint(Math.Cos(angolo)*delta1,Math.Sin(angolo)*delta2);
+                Spiral.Add(p1);
+                conto++;
+                if(conto==limite)
+                {
+                    angolo+=Math.PI/2;
+                    if(angolo%Math.PI==0)
+                    {
+                        limite++;
+                    }
+                    
+                    conto=0;
+                }
+            }
+            
+            return Spiral;
+        }
+    '''
+    
+    # Segment management functions    
+    
+    def createSpiral(self,delta1,delta2,pointsNr):
+        
+        spiral = []
+        angle = 0.0
+        limit = 1
+        count = 0
+        
+        for i in range(pointsNr):
+            p1 = [np.cos(angle)*delta1,np.sin(angle)*delta2]
+            spiral.append(p1)
+            count += 1
+            if count == limit:
+                angle += np.pi/2
+                if angle%np.pi == 0:
+                    limit += 1
+        
+        return spiral       
         
     
-    def startExperiment(self):
+    def startExperiment(self,segments):
         
         culprit = self.sender()
         self.xyCmd.send('GZ',[])
+        self.segmentsToDo = segments
         
         self.currentCurve = curve.curve()
-        if not exists(self.dirLine.text()):
-            makedirs(self.dirLine.text())
-        self.currentCurvePath = join(self.dirLine.text(),(self.fileNameRootLine+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
         
-        savingT = Thread(self.saveSegment)
+        curveDir = self.dirLine.text() if self.dirLine.text() != '' else self.curveDir
+        if not exists(curveDir):
+            makedirs(curveDir)
+        curveBase = self.fileNameRootLine.text() if self.fileNameRootLine.text() != '' else self.baseCurveName
+        self.currentCurvePath = join(curveDir,(curveBase+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
+        
+        self.mapPoints = self.createSpiral(self.xStepNumMapNum.value(), self.yStepNumMapNum.value(), self.pointsToDo)
+        
+        self.currentCurveNum = 0
+        self.currentPtNum = 0
+        self.currentSeg = -1
+        
+        self.remoteProg.setMaximum(self.curvesToDo*self.pointsToDo-1)
+        self.experimentRds()
+        
+        self.expInProgress = True
+        savingT = Thread(target = self.saveSegment)
         savingT.start()
-        
+        self.cycleExp()
     
     
     def saveSegment(self):
@@ -647,35 +746,90 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         return z,f
     
         
-    def segmentDone(self):
+    def segmentDone(self,v):
         
-        self.saveMe = True
+        self.saveMe = not v
+        if not v:
+            self.cicleExp()
+    
+    
+    def doSegment(self):
+        # send segment parameters
+        zTrigger = self.segmentsToDo[self.currentSeg]['zLim']
+        ftrigger = self.segmentsToDo[self.currentSeg]['fLim']
+        tTrigger = self.segmentsToDo[self.currentSeg]['holdT']
         
-        pass
+        zTriggerEnabled = zTrigger != 0 and self.segmentsToDo[self.currentSeg]['speed'] != 0
+        fTriggerEnabled = fTrigger != 0 and self.segmentsToDo[self.currentSeg]['speed'] != 0
+        tTriggerEnabled = self.segmentsToDo[self.currentSeg]['speed'] == 0 
+        
+        self.curveData.save = True
+        
+        
+    def cycleExp(self):
+        self.currentSeg += 1
+        if self.currentSeg == len(self.segmentsToDo):
+            self.currentCurve = curve.curve()
+            self.currentCurveNum += 1
+            if self.currentCurveNum == self.curvesToDo:
+                if self.currentPtNum+1 == self.pointsToDo:
+                    self.stopExperiment()
+                    return 
+                self.currentPtNum += 1
+                self.makeAstep(self.mapPoints[self.currentPtNum][0], self.mapPoints[self.currentPtNum][1])
+            curveBase = self.fileNameRootLine.text() if self.fileNameRootLine.text() != '' else self.baseCurveName
+            curveDir = self.dirLine.text() if self.dirLine.text() != '' else self.curveDir
+            self.currentCurvePath = join(curveDir,(curveBase+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
+            self.experimentRds()
         
     
     def fvsd(self):
         self.rdsLine.setText('FvsD curve')
+        self.pointsToDo = 1
+        self.curvesToDo = self.curveNumNum.value()
+        self.startExperiment(self.getStandardSeg())
     
     
     def fvsdMap(self):
         self.rdsLine.setText('FvsD map')
+        self.pointsToDo = self.ptNumMapNum.value()
+        self.curvesToDo = self.curveNumNum.value()
+        self.startExperiment(self.getStandardSeg())
     
     
     def custom(self):
         self.rdsLine.setText('Custom curve')
+        self.pointsToDo = 1
+        self.curvesToDo = self.curveNumcNum.value()
+        self.startExperiment(self.custFvsdSegs)
     
     
     def customMap(self):
         self.rdsLine.setText('Custom map')
+        self.pointsToDo = self.ptNumMapNum.value()
+        self.curvesToDo = self.curveNumcNum.value()
+        self.startExperiment(self.custFvsdSegs)
     
     
-    def stopSingle(self):
+    def stopExperiment(self):
+        
+        self.expInProgress = False
+        self.curveData.save = False
+        self.xyCmd.send('S',[])
         self.rdsLine.setText('')
+        
     
-    
-    def stopMap(self):
+    def goToRest(self):
+        
         self.rdsLine.setText('')
+        
+        pass
+    
+    
+    def experimentRds(self):
+        
+        self.rdsLine.setText('Curve: ' + str(self.currentCurveNum+1) + '; Point: ' + str(self.currentPtNum+1))
+        self.remoteProg.setValue(self.curvesToDo*self.currentPtNum+self.currentCurveNum)
         
         
     def actionNdocksConnections(self):
@@ -754,8 +908,13 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def epzConnections(self):
         
-        self.curveData.chunkReceived.connect(self.sendZ)
+        self.curveData.yDataReceived.connect(self.sendZ)
         self.monitData.chunkReceived.connect(self.updateQPD)
+        self.monitData.xDataReceived.connect(self.deflNumDbl.setValue)
+        self.monitData.yDataReceived.connect(self.torsNumDbl.setValue)
+        self.monitData.zDataReceived.connect(self.sumNumDbl.setValue)
+        self.curveData.stateChanged.connect(self.segmentDone)
+        self.xyRes.respReceived.connect(self.doSegment)
         
         
     def genericConnetions(self):
@@ -766,6 +925,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.zPiezoNumDbl.valueChanged.connect(self.zMonitProg)
         self.browseBtn.clicked.connect(self.getDataDir)
         self.segCmbBox.currentIndexChanged.connect(self.showSeg)
-        
+        self.kdNumDbl.valueChanged.connect(self.changeRefDefl)
+        self.kNumDbl.valueChanged.connect(self.changeRefDefl)
         
         
