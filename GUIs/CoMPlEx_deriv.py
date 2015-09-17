@@ -8,6 +8,7 @@ import PyQt4.QtGui as qg
 from PyQt4 import QtCore
 from PyQt4.QtGui import QDialog, QFileDialog
 from PyQt4.QtGui import QMainWindow
+from PyQt4.QtCore import QThread
 import pyqtgraph as pg
 
 from os import makedirs
@@ -16,6 +17,7 @@ from os.path import splitext, split, join, exists
 #from ConfigParser import ConfigParser
 from configparser import ConfigParser
 import numpy as np
+from time import sleep
 
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
@@ -29,11 +31,27 @@ except AttributeError:
     def _fromUtf8(s):
         return s
 
-CHUNK = 20
+CHUNK = 10000
+DEC = 1000
+
+'''
+1 #0033CC
+2 #FF0000
+3 #009900
+4 #9933FF
+5 #996600
+6 #660033
+7 #000000
+8 #8D9494
+
+'''
 
 class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     
     channels = ['Engage','Calib QPD','Calib K','FvsD curve','FvsD map','Custom curve','Custom map']
+    pens = [{'color':'#0033CC','width':1},{'color':'#FF0000','width':1},{'color':'#009900','width':1},
+            {'color':'#9933FF','width':1},{'color':'#996600','width':1},{'color':'#660033','width':1},
+            {'color':'#000000','width':1},{'color':'#8D9494','width':1}]
     
     def __init__(self,parent = None):
     
@@ -66,6 +84,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                                 self.qpdNpiezoDock:[self.action_QPD_and_piezo,'isVisible','setChecked','changed']}
         
         self.custFvsdSegs = []
+        self.currentZ = 0.0
+        self.currentF = 0.0
+        self.nonCntF = 0.0
         
         self.programs = [self.engage,self.calibQPD,self.calibK,self.fvsd,self.fvsdMap,self.custom,self.customMap]
         
@@ -85,10 +106,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.curveEnv = epz.Environment()
         self.monitEnv = epz.Environment()
-        
-        self.currentSpeed = 0.0
-        self.currentDirection = 'far'
-        self.currentType = 'Zconst'
+    
         self.currentCurve = None
         self.currentCurveNum = 0
         self.currentPtNum = 0
@@ -175,7 +193,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         zvm = float(parser.get('PIEZO','vmin'))
         
         self.zVtoNm = lambda x: ((x-zvm)/(zvM-zvm)*(zM-zm)+zm)
-        self.zNmtoV = lambda x: ((x-zm)/(zM-zm)*(zvM-zvm)+zvm) 
+        self.zNmtoV = lambda x: ((x-zm)/(zM-zm)*(zvM-zvm)+zvm)
+        self.zNmtoVrel = lambda x: (x/(zM-zm)*(zvM-zvm))
+        
+        self.toStartSpeed = float(parser.get('PIEZO','tostartspeed'))
         
         self.endZNumDbl.setMaximum(zM)
         self.endZcNumDbl.setMaximum(zM)
@@ -221,6 +242,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.monitData.save = False
         
         self.curveData.chunk = CHUNK
+        self.curveData.decimate = DEC
         self.monitData.chunk = CHUNK
         
         self.curveData.start()
@@ -417,33 +439,36 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def getStandardSeg(self):
         
         stdSegments = []
-        
+        types = ['Zconst','Fconst','Vconst','Vconst']
         seg = {}
         
         seg['zLim'] = self.endZNumDbl.value()
         seg['fLim'] = self.maxFNumDbl.value()
         seg['speed'] = self.appSpeedNumDbl.value()
         seg['direction'] = 3
+        seg['type'] = types[seg['direction']]
         seg['holdT'] = 0
         
         stdSegments.append(seg)
         
-        seg = {}
+        if self.holdTimeNumDbl.value()>0:
+            seg = {}
+            seg['zLim'] = 0
+            seg['fLim'] = 0
+            seg['speed'] = 0
+            seg['direction'] = 1 if self.constForceCkBox.isChecked() else 0
+            seg['type'] = types[seg['direction']] 
+            seg['holdT'] = self.holdTimeNumDbl.value()
         
-        seg['zLim'] = 0
-        seg['fLim'] = 0
-        seg['speed'] = 0
-        seg['direction'] = 1 if self.constForceCkBox.isChecked() else 0 
-        seg['holdT'] = self.holdTimeNumDbl.value()
-        
-        stdSegments.append(seg)
+            stdSegments.append(seg)
         
         seg = {}
         
         seg['zLim'] = self.startZNumDbl.value()
         seg['fLim'] = self.maxFNumDbl.minimum()
-        seg['speed'] = self.appSpeedNumDbl.value()
+        seg['speed'] = self.retrSpeedNumDbl.value()
         seg['direction'] = 2
+        seg['type'] = types[seg['direction']]
         seg['holdT'] = 0
         
         stdSegments.append(seg)
@@ -454,11 +479,13 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def addSeg(self):
         
         seg = {}
+        types = ['Zconst','Fconst','Vconst','Vconst']
         
         seg['zLim'] = self.endZcNumDbl.value()
         seg['fLim'] = self.endFcNumDbl.value()
         seg['speed'] = self.speedcNumDbl.value()
         seg['direction'] = self.getDir()
+        seg['type'] = types[seg['direction']]
         seg['holdT'] = self.holdTimecNumDbl.value()
         
         self.custFvsdSegs.append(seg)
@@ -563,11 +590,13 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def updateSeg(self):
         
         ind = self.segCmbBox.currentIndex()
+        types = ['Zconst','Fconst','Vconst','Vconst']
         
         self.custFvsdSegs[ind]['zLim'] = self.endZcNumDbl.value()
         self.custFvsdSegs[ind]['fLim'] = self.endFcNumDbl.value()
         self.custFvsdSegs[ind]['speed'] = self.speedcNumDbl.value()
         self.custFvsdSegs[ind]['direction'] = self.getDir()
+        self.custFvsdSegs[ind]['type'] = types[seg['direction']]
         self.custFvsdSegs[ind]['holdT'] = self.holdTimecNumDbl.value()
         self.custFvsdSegs[ind]['fbOn'] = self.altFSegBtn.isChecked()
             
@@ -584,11 +613,13 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.programs[channel]()
         
+        self.channelCmbBox.setEnabled(False)
+        
         
     def remoteStop(self):
         
         channel = self.channelCmbBox.currentIndex()
-        
+        self.channelCmbBox.setEnabled(True)
         if channel <3:
             self.goToRest()
         else:
@@ -633,37 +664,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.channelMng('Custom curve')
         self.channelMng('Custom map')
         self.rdsLine.setText('Elastic constant calibration')
-    
-    '''
-    public List<simplePoint> createSpiral(double delta1, double delta2, double pointsNr)
-        {
-            List<simplePoint> Spiral = new List<simplePoint>();
-            simplePoint p1=new simplePoint(0,delta2);
-            double angolo=0;
-            int limite=1;
-            int conto=0;
-            
-            for(int i=0; i<pointsNr; i++)
-            {
-                p1 = new simplePoint(Math.Cos(angolo)*delta1,Math.Sin(angolo)*delta2);
-                Spiral.Add(p1);
-                conto++;
-                if(conto==limite)
-                {
-                    angolo+=Math.PI/2;
-                    if(angolo%Math.PI==0)
-                    {
-                        limite++;
-                    }
-                    
-                    conto=0;
-                }
-            }
-            
-            return Spiral;
-        }
-    '''
-    
+
+
     # Segment management functions    
     
     def createSpiral(self,delta1,delta2,pointsNr):
@@ -688,99 +690,113 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def startExperiment(self,segments):
         
         culprit = self.sender()
-        self.xyCmd.send('GZ',[])
         self.segmentsToDo = segments
         
         self.currentCurve = curve.curve()
         
-        curveDir = self.dirLine.text() if self.dirLine.text() != '' else self.curveDir
-        if not exists(curveDir):
+        self.curveDir = self.dirLine.text() if self.dirLine.text() != '' else self.curveDir
+        if not exists(self.curveDir):
             makedirs(curveDir)
-        curveBase = self.fileNameRootLine.text() if self.fileNameRootLine.text() != '' else self.baseCurveName
-        self.currentCurvePath = join(curveDir,(curveBase+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
-        
+        self.baseCurveName = self.fileNameRootLine.text() if self.fileNameRootLine.text() != '' else self.baseCurveName
+        self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
+        self.currentCurve.filename = self.currentCurvePath
+        self.currentCurve.save(self.currentCurvePath)
         self.mapPoints = self.createSpiral(self.xStepNumMapNum.value(), self.yStepNumMapNum.value(), self.pointsToDo)
         
         self.currentCurveNum = 0
         self.currentPtNum = 0
-        self.currentSeg = -1
+        self.currentSeg = 0
         
         self.remoteProg.setMaximum(self.curvesToDo*self.pointsToDo-1)
         self.experimentRds()
         
         self.expInProgress = True
-        savingT = Thread(target = self.saveSegment)
-        savingT.start()
-        self.cycleExp()
+        self.currentSaver = SaveThread(self)
+        self.currentSaver.start()
+        self.curveData.stateChanged.connect(self.segmentDone)
+        self.plottedSegs,self.ramblingPlot = self.initCurvePlot(len(self.segmentsToDo)-1)
+        self.curveData.chunkReceived.connect(self.ramblingPlotManager)
+        self.xyRes.respReceived.connect(self.doSegment)
+        self.xyCmd.send('GZ',[])
     
     
-    def saveSegment(self):
-        while self.expInProgress:
-            if self.saveMe:
-                tempQueue = self.curveData.queue[0]
-                del self.curveData.queue[0]
-                self.newz,self.newf = self.emptyDataQueue(tempQueue)
-                emptySeg = segment.segment(self.newz,self.newf)
-                emptySeg.k = self.kNumDbl.value()
-                emptySeg.speed = self.currentSpeed
-                emptySeg.direction = self.currentDirection
-                emptySeg.type = self.currentType
+    def initCurvePlot(self,segNum):
         
-                curve.append(emptySeg)
-                curve.save(self.currentCurvePath)
-                
-                self.saveMe = False
+        self.centralPlot.clear()
+        plots = []
+        n = len(self.pens)
+        for i in range(len(self.segmentsToDo)):
+            plots.append(self.centralPlot.plot([],[],pen=self.pens[i%n])),#i,i+1,i+2],[i,i*2,i*3],pen=self.pens[i%n]))
+        ramblingPlot = self.centralPlot.plot([],[],pen=self.pens[0])
+        return plots, ramblingPlot
     
     
-    def emptyDataQueue(self,q):
+    def clearPlot(self):
         
-        t,zv,fv = []
-        while q.qsize()>0:
-            temp = q.get()
-            t.append(temp[0])
-            zv.append(temp[1])
-            fv.append(temp[2])
-        z = self.zVtoNm(np.array(zv))
-        f = np.array(fv)*self.kNumDbl.value()*self.kdNumDbl.value()
+        for p in self.plottedSegs:
+            p.setData([],[])
+    
+    
+    def ramblingPlotManager(self,v):
         
-        return z,f
+        data = np.array(v)
+        self.ramblingPlot.setData(data[:,1],data[:,1])
+            
+    
+    def doSegment(self):
+        # send segment parameters
+        segment = self.segmentsToDo[self.currentSeg]
+        zTrigger = segment['zLim']
+        ftrigger = segment['fLim']
+        tTrigger = segment['holdT']
+        
+        zTriggerEnabled = zTrigger != 0 and segment['speed'] != 0
+        fTriggerEnabled = fTrigger != 0 and segment['speed'] != 0
+        tTriggerEnabled = segment['speed'] == 0 
+        
+        self.curveData.save = True
     
         
     def segmentDone(self,v):
         
-        self.saveMe = not v
         if not v:
+            tempQueue = self.curveData.queue[0]
+            del self.curveData.queue[0]
+            if self.currentSeg > 0:
+                self.currData = np.array(tempQueue.queue)
+                self.currentSaver.waitingInLine.append(tempQueue)
+                self.currentSaver.segParams.append(self.segmentsToDo[self.currentSeg])
+                self.currentSaver.curves.append(self.currentCurve)
             self.cicleExp()
-    
-    
-    def doSegment(self):
-        # send segment parameters
-        zTrigger = self.segmentsToDo[self.currentSeg]['zLim']
-        ftrigger = self.segmentsToDo[self.currentSeg]['fLim']
-        tTrigger = self.segmentsToDo[self.currentSeg]['holdT']
-        
-        zTriggerEnabled = zTrigger != 0 and self.segmentsToDo[self.currentSeg]['speed'] != 0
-        fTriggerEnabled = fTrigger != 0 and self.segmentsToDo[self.currentSeg]['speed'] != 0
-        tTriggerEnabled = self.segmentsToDo[self.currentSeg]['speed'] == 0 
-        
-        self.curveData.save = True
         
         
     def cycleExp(self):
         self.currentSeg += 1
         if self.currentSeg == len(self.segmentsToDo):
             self.currentCurve = curve.curve()
+            self.plottedSegs = self.clearPlot()
             self.currentCurveNum += 1
+            self.currentSeg = 1
             if self.currentCurveNum == self.curvesToDo:
                 if self.currentPtNum+1 == self.pointsToDo:
                     self.stopExperiment()
                     return 
                 self.currentPtNum += 1
+                self.currentCurveNum = 0
+                self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
+                self.currentCurve.filename = self.currentCurvePath
+                self.currentCurve.save(self.currentCurvePath)
+                self.experimentRds()
                 self.makeAstep(self.mapPoints[self.currentPtNum][0], self.mapPoints[self.currentPtNum][1])
-            curveBase = self.fileNameRootLine.text() if self.fileNameRootLine.text() != '' else self.baseCurveName
-            curveDir = self.dirLine.text() if self.dirLine.text() != '' else self.curveDir
-            self.currentCurvePath = join(curveDir,(curveBase+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
-            self.experimentRds()
+            else:
+                self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
+                self.currentCurve.filename = self.currentCurvePath
+                self.currentCurve.save(self.currentCurvePath)
+                self.experimentRds()
+                self.doSegment()
+        else:
+            self.plottedSegs[self.currentSeg-1].setData(self.currData[::self.curveData.decimate,1],self.currData[::self.curveData.decimate,1])
+            self.doSegment()
         
     
     def fvsd(self):
@@ -801,20 +817,40 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.rdsLine.setText('Custom curve')
         self.pointsToDo = 1
         self.curvesToDo = self.curveNumcNum.value()
-        self.startExperiment(self.custFvsdSegs)
+        
+        seg = {}
+        seg['zLim'] = self.startZcNumDbl.value()
+        seg['fLim'] = self.endFcNumDbl.minimum()
+        seg['speed'] = self.toStartSpeed
+        seg['direction'] = 2
+        seg['holdT'] = 0
+        
+        tempSegsList = [seg]+self.custFvsdSegs
+        self.startExperiment(tempSegsList)
     
     
     def customMap(self):
         self.rdsLine.setText('Custom map')
         self.pointsToDo = self.ptNumMapNum.value()
         self.curvesToDo = self.curveNumcNum.value()
-        self.startExperiment(self.custFvsdSegs)
+        seg = {}
+        seg['zLim'] = self.startZcNumDbl.value()
+        seg['fLim'] = self.endFcNumDbl.minimum()
+        seg['speed'] = self.toStartSpeed
+        seg['direction'] = 2
+        seg['holdT'] = 0
+        
+        tempSegsList = [seg]+self.custFvsdSegs
+        self.startExperiment(tempSegsList)
     
     
     def stopExperiment(self):
         
         self.expInProgress = False
         self.curveData.save = False
+        self.curveData.stateChanged.disconnect()
+        self.xyRes.respReceived.disconnect()
+        self.currentSaver.go = False
         self.xyCmd.send('S',[])
         self.rdsLine.setText('')
         
@@ -913,8 +949,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.monitData.xDataReceived.connect(self.deflNumDbl.setValue)
         self.monitData.yDataReceived.connect(self.torsNumDbl.setValue)
         self.monitData.zDataReceived.connect(self.sumNumDbl.setValue)
-        self.curveData.stateChanged.connect(self.segmentDone)
-        self.xyRes.respReceived.connect(self.doSegment)
         
         
     def genericConnetions(self):
@@ -929,3 +963,52 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.kNumDbl.valueChanged.connect(self.changeRefDefl)
         
         
+    
+class SaveThread(QThread):
+    
+    def __init__(self,parent):
+        
+        super(SaveThread,self).__init__()
+        self.waitingInLine = []
+        self.segParams = []
+        self.curves = []
+        self.go = True
+    
+    
+    def emptyDataQueue(self,q):
+        
+        t,zv,fv = []
+        for i in iter(q,'STOP'):
+            temp = i
+            t.append(temp[0])
+            zv.append(temp[1])
+            fv.append(temp[2])
+        z = parent.zVtoNm(np.array(zv))
+        f = np.array(fv)*parent.kNumDbl.value()*parent.kdNumDbl.value()
+
+        return z,f    
+    
+    
+    def run(self):
+        
+        while self.go:
+            if len(self.waitingInLine)>0:
+                tempQueue = self.waitingInLine[0]
+                tempSeg = self.segParams[0]
+                curve = self.curves[0]
+                del self.waitingInLine[0]
+                del self.segParams[0]
+                del self.curves[0]
+                newz,newf = self.emptyDataQueue(tempQueue)
+                emptySeg = segment.segment(newz,newf)
+                emptySeg.k = parent.kNumDbl.value()
+                emptySeg.speed = tempSeg['speed']
+                emptySeg.direction = 'hold' if tempSeg['direction'] < 2 else ('far' if tempSeg['direction'] == 2 else 'near')
+                emptySeg.type = tempSeg['type']
+        
+                curve.appendToFile(emptySeg)
+                
+            sleep(3.0)
+            
+            
+            

@@ -196,6 +196,20 @@
         </item>
        </widget>
       </item>
+      <item row="5" column="1">
+       <widget class="QDoubleSpinBox" name="toStartSpeedNumDbl">
+        <property name="minimum">
+         <double>-99.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="label_19">
+        <property name="text">
+         <string>Start speed [nm/s]</string>
+        </property>
+       </widget>
+      </item>
      </layout>
      <zorder>label_5</zorder>
      <zorder>maxPiezoVoltNumDbl</zorder>
@@ -207,6 +221,8 @@
      <zorder>minPiezoExtNumDbl</zorder>
      <zorder>label_9</zorder>
      <zorder>farNearCmbBox</zorder>
+     <zorder>toStartSpeedNumDbl</zorder>
+     <zorder>label_19</zorder>
     </widget>
    </item>
    <item>

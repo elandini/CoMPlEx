@@ -34,6 +34,7 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
         self.maxPiezoExtNumDbl.setValue(float(self.parser.get('PIEZO', 'zmax')))
         self.minPiezoExtNumDbl.setValue(float(self.parser.get('PIEZO', 'zmin')))
         self.farNearCmbBox.setCurrentIndex(int(self.parser.get('PIEZO','nearfar')))
+        self.toStartSpeedNumDbl.setValue(float(self.parser.get('PIEZO','tostartspeed')))
         
         self.deflSignCmbBox.setCurrentIndex(int(self.parser.get('OTHER','deflsign')))
         self.sumThrNumDbl.setValue(float(self.parser.get('OTHER', 'sumthr')))
@@ -58,6 +59,7 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
         self.parser.set('PIEZO', 'zmax',str(self.maxPiezoExtNumDbl.value()))
         self.parser.set('PIEZO', 'zmin',str(self.minPiezoExtNumDbl.value()))
         self.parser.set('PIEZO','nearfar',str(self.farNearCmbBox.currentIndex()))
+        self.parser.set('PIEZO', 'tostartspeed',str(self.toStartSpeedNumDbl.value()))
         
         self.parser.set('OTHER','deflsign',str(self.deflSignCmbBox.currentIndex()))
         self.parser.set('OTHER', 'sumthr',str(self.sumThrNumDbl.value()))

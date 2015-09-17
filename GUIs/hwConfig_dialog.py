@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'GUIs\hwConfig_dialog.ui'
 #
-# Created: Fri Sep 11 10:47:13 2015
+# Created: Tue Sep 15 11:30:25 2015
 #      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
@@ -122,6 +122,13 @@ class Ui_hwConfig_dialog(object):
         self.farNearCmbBox.addItem(_fromUtf8(""))
         self.farNearCmbBox.addItem(_fromUtf8(""))
         self.formLayout_2.setWidget(4, QtGui.QFormLayout.FieldRole, self.farNearCmbBox)
+        self.toStartSpeedNumDbl = QtGui.QDoubleSpinBox(self.groupBox_2)
+        self.toStartSpeedNumDbl.setMinimum(-99.0)
+        self.toStartSpeedNumDbl.setObjectName(_fromUtf8("toStartSpeedNumDbl"))
+        self.formLayout_2.setWidget(5, QtGui.QFormLayout.FieldRole, self.toStartSpeedNumDbl)
+        self.label_19 = QtGui.QLabel(self.groupBox_2)
+        self.label_19.setObjectName(_fromUtf8("label_19"))
+        self.formLayout_2.setWidget(5, QtGui.QFormLayout.LabelRole, self.label_19)
         self.verticalLayout.addWidget(self.groupBox_2)
         self.groupBox_3 = QtGui.QGroupBox(hwConfig_dialog)
         self.groupBox_3.setObjectName(_fromUtf8("groupBox_3"))
@@ -202,6 +209,7 @@ class Ui_hwConfig_dialog(object):
         self.label_9.setText(_translate("hwConfig_dialog", "Min piezo ext       =", None))
         self.farNearCmbBox.setItemText(0, _translate("hwConfig_dialog", "Far", None))
         self.farNearCmbBox.setItemText(1, _translate("hwConfig_dialog", "Near", None))
+        self.label_19.setText(_translate("hwConfig_dialog", "Start speed [nm/s]", None))
         self.groupBox_3.setTitle(_translate("hwConfig_dialog", "Other", None))
         self.label_10.setText(_translate("hwConfig_dialog", "Deflection sign", None))
         self.deflSignCmbBox.setItemText(0, _translate("hwConfig_dialog", "Signal increase = force increase", None))

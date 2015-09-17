@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'GUIs\CoMPlEx_GUI.ui'
 #
-# Created: Mon Sep 14 12:10:40 2015
+# Created: Wed Sep 16 15:10:52 2015
 #      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
@@ -742,9 +742,9 @@ class Ui_CoMPlEx_GUI(object):
         self.uploadMaxFBtn = QtGui.QPushButton(self.fvsdTab)
         self.uploadMaxFBtn.setObjectName(_fromUtf8("uploadMaxFBtn"))
         self.gridLayout_7.addWidget(self.uploadMaxFBtn, 0, 2, 1, 1)
-        self.restrSpeedNumDbl = QtGui.QDoubleSpinBox(self.fvsdTab)
-        self.restrSpeedNumDbl.setObjectName(_fromUtf8("restrSpeedNumDbl"))
-        self.gridLayout_7.addWidget(self.restrSpeedNumDbl, 4, 1, 1, 1)
+        self.retrSpeedNumDbl = QtGui.QDoubleSpinBox(self.fvsdTab)
+        self.retrSpeedNumDbl.setObjectName(_fromUtf8("retrSpeedNumDbl"))
+        self.gridLayout_7.addWidget(self.retrSpeedNumDbl, 4, 1, 1, 1)
         self.line_8 = QtGui.QFrame(self.fvsdTab)
         self.line_8.setFrameShape(QtGui.QFrame.HLine)
         self.line_8.setFrameShadow(QtGui.QFrame.Sunken)
