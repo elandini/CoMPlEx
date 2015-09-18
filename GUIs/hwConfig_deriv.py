@@ -47,8 +47,8 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
     def saveControls(self):
         
         self.parser.set('CONN', 'afmip',self.afmIpLine.text())
-        self.parser.set('CONN', 'afmsumport',str(self.afmSubPortNum.value()))
-        self.parser.set('CONN', 'afmpumport',str(self.afmPubPortNum.value()))
+        self.parser.set('CONN', 'afmsubport',str(self.afmSubPortNum.value()))
+        self.parser.set('CONN', 'afmpubport',str(self.afmPubPortNum.value()))
         self.parser.set('CONN', 'curvelname',self.curveNameLine.text())
         self.parser.set('CONN', 'monitname',self.monitNameLine.text())
         self.parser.set('CONN', 'xycmd',self.xyCmdTagLine.text())

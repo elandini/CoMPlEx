@@ -22,7 +22,7 @@ from time import sleep
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
 
-from libs.epz import epz
+import epz
 from libs.curveLib import curve,segment
 
 try:
@@ -88,7 +88,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.currentF = 0.0
         self.nonCntF = 0.0
         
-        self.programs = [self.engage,self.calibQPD,self.calibK,self.fvsd,self.fvsdMap,self.custom,self.customMap]
+        self.programs = {'Engage':self.engage,'Calib QPD':self.calibQPD,'Calib K':self.calibK,
+                         'FvsD curve':self.fvsd,'FvsD map':self.fvsdMap,'Custom curve':self.custom,'Custom map':self.customMap}
         
         self.cfgFile = str(QFileDialog.getOpenFileName(self,'Select a configuration file',filter='Ini (*.ini)'))
         if self.cfgFile == '':
@@ -269,7 +270,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         paramsParser.set('MISC','afm',self.cfgFile)
         for k in sDict.keys():
             paramsParser.add_section(sDict[k][0])
-            for i in xrange(len(sDict[k][3])):
+            for i in range(len(sDict[k][3])):
                 paramsParser.set(sDict[k][0], sDict[k][3][i], str(eval('self.'+sDict[k][3][i]+sDict[k][1])))
         
         paramsParser.write(paramsFile)
@@ -318,6 +319,13 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.endFcNumDbl.setMinimum(-10*self.kdNumDbl.value()*self.kNumDbl.value())
         
         self.label_7.setText('Set Point[V]' if self.kdNumDbl.value() == 1 else ('Set Point[nm]' if self.kNumDbl.value() == 1 else 'Set Point[pN]'))
+        
+        if self.kdNumDbl.value() != 1 and self.kNumDbl.value() != 1:
+            self.channelMng('FvsD curve')
+            self.channelMng('FvsD curve')
+            self.channelMng('FvsD map')
+            self.channelMng('Custom curve')
+            self.channelMng('Custom map')
         
         
     def dockMng(self):
@@ -501,7 +509,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def removeSeg(self):
         
         junkInd = self.segCmbBox.currentIndex()
-        for i in xrange(self.segCmbBox.count()-(junkInd+1)):
+        for i in range(self.segCmbBox.count()-(junkInd+1)):
             num = i+junkInd
             self.segCmbBox.setItemText(i+junkInd+1,'Segment: '+str(num))
         self.segCmbBox.removeItem(junkInd)
@@ -596,7 +604,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.custFvsdSegs[ind]['fLim'] = self.endFcNumDbl.value()
         self.custFvsdSegs[ind]['speed'] = self.speedcNumDbl.value()
         self.custFvsdSegs[ind]['direction'] = self.getDir()
-        self.custFvsdSegs[ind]['type'] = types[seg['direction']]
+        self.custFvsdSegs[ind]['type'] = types[self.custFvsdSegs[ind]['direction']]
         self.custFvsdSegs[ind]['holdT'] = self.holdTimecNumDbl.value()
         self.custFvsdSegs[ind]['fbOn'] = self.altFSegBtn.isChecked()
             
@@ -609,7 +617,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def remotePlay(self):
         
-        channel = self.channelCmbBox.currentIndex()
+        channel = self.channelCmbBox.currentText()
         
         self.programs[channel]()
         
@@ -618,9 +626,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def remoteStop(self):
         
-        channel = self.channelCmbBox.currentIndex()
+        channel = self.channelCmbBox.currentText()
         self.channelCmbBox.setEnabled(True)
-        if channel <3:
+        if channel == 'Engage' or channel == 'Calib QPD' or channel == 'Calib K':
             self.goToRest()
         else:
             self.stopExperiment()
@@ -696,7 +704,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.curveDir = self.dirLine.text() if self.dirLine.text() != '' else self.curveDir
         if not exists(self.curveDir):
-            makedirs(curveDir)
+            makedirs(self.curveDir)
         self.baseCurveName = self.fileNameRootLine.text() if self.fileNameRootLine.text() != '' else self.baseCurveName
         self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
         self.currentCurve.filename = self.currentCurvePath
@@ -747,7 +755,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         # send segment parameters
         segment = self.segmentsToDo[self.currentSeg]
         zTrigger = segment['zLim']
-        ftrigger = segment['fLim']
+        fTrigger = segment['fLim']
         tTrigger = segment['holdT']
         
         zTriggerEnabled = zTrigger != 0 and segment['speed'] != 0
@@ -760,26 +768,33 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def segmentDone(self,v):
         
         if not v:
-            tempQueue = self.curveData.queue[0]
-            del self.curveData.queue[0]
             if self.currentSeg > 0:
+                tempQueue = self.curveData.queue[0]
                 self.currData = np.array(tempQueue.queue)
+                #print(self.currData)
                 self.currentSaver.waitingInLine.append(tempQueue)
+                #print(self.segmentsToDo)
+                #print(self.currentSeg)
                 self.currentSaver.segParams.append(self.segmentsToDo[self.currentSeg])
                 self.currentSaver.curves.append(self.currentCurve)
-            self.cicleExp()
+            del self.curveData.queue[0]
+            self.cycleExp()
         
         
     def cycleExp(self):
+        if self.currentSeg > 0:
+            #print(self.plottedSegs)
+            self.plottedSegs[self.currentSeg-1].setData(self.currData[::self.curveData.decimate,1],self.currData[::self.curveData.decimate,2])
+        
         self.currentSeg += 1
         if self.currentSeg == len(self.segmentsToDo):
             self.currentCurve = curve.curve()
-            self.plottedSegs = self.clearPlot()
+            self.clearPlot()
             self.currentCurveNum += 1
             self.currentSeg = 1
             if self.currentCurveNum == self.curvesToDo:
                 if self.currentPtNum+1 == self.pointsToDo:
-                    self.stopExperiment()
+                    self.remoteStop()
                     return 
                 self.currentPtNum += 1
                 self.currentCurveNum = 0
@@ -795,7 +810,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 self.experimentRds()
                 self.doSegment()
         else:
-            self.plottedSegs[self.currentSeg-1].setData(self.currData[::self.curveData.decimate,1],self.currData[::self.curveData.decimate,1])
             self.doSegment()
         
     
@@ -803,14 +817,30 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.rdsLine.setText('FvsD curve')
         self.pointsToDo = 1
         self.curvesToDo = self.curveNumNum.value()
-        self.startExperiment(self.getStandardSeg())
+        seg = {}
+        seg['zLim'] = self.startZNumDbl.value()
+        seg['fLim'] = self.maxFNumDbl.minimum()
+        seg['speed'] = self.toStartSpeed
+        seg['direction'] = 2
+        seg['holdT'] = 0
+        
+        tempSegsList = [seg]+self.getStandardSeg()
+        self.startExperiment(tempSegsList)
     
     
     def fvsdMap(self):
         self.rdsLine.setText('FvsD map')
         self.pointsToDo = self.ptNumMapNum.value()
         self.curvesToDo = self.curveNumNum.value()
-        self.startExperiment(self.getStandardSeg())
+        seg = {}
+        seg['zLim'] = self.startZNumDbl.value()
+        seg['fLim'] = self.maxFNumDbl.minimum()
+        seg['speed'] = self.toStartSpeed
+        seg['direction'] = 2
+        seg['holdT'] = 0
+        
+        tempSegsList = [seg]+self.getStandardSeg()
+        self.startExperiment(tempSegsList)
     
     
     def custom(self):
@@ -973,18 +1003,19 @@ class SaveThread(QThread):
         self.segParams = []
         self.curves = []
         self.go = True
+        self.parent = parent
     
     
     def emptyDataQueue(self,q):
         
-        t,zv,fv = []
-        for i in iter(q,'STOP'):
+        t = zv = fv = []
+        for i in iter(q.get,'STOP'):
             temp = i
             t.append(temp[0])
             zv.append(temp[1])
             fv.append(temp[2])
-        z = parent.zVtoNm(np.array(zv))
-        f = np.array(fv)*parent.kNumDbl.value()*parent.kdNumDbl.value()
+        z = self.parent.zVtoNm(np.array(zv))
+        f = np.array(fv)*self.parent.kNumDbl.value()*self.parent.kdNumDbl.value()
 
         return z,f    
     
@@ -992,23 +1023,27 @@ class SaveThread(QThread):
     def run(self):
         
         while self.go:
+            print('going')
+            print(len(self.waitingInLine))
+            print('waiting in line')
             if len(self.waitingInLine)>0:
                 tempQueue = self.waitingInLine[0]
                 tempSeg = self.segParams[0]
                 curve = self.curves[0]
-                del self.waitingInLine[0]
-                del self.segParams[0]
-                del self.curves[0]
                 newz,newf = self.emptyDataQueue(tempQueue)
+                print(newz)
                 emptySeg = segment.segment(newz,newf)
-                emptySeg.k = parent.kNumDbl.value()
+                emptySeg.k = self.parent.kNumDbl.value()
                 emptySeg.speed = tempSeg['speed']
                 emptySeg.direction = 'hold' if tempSeg['direction'] < 2 else ('far' if tempSeg['direction'] == 2 else 'near')
                 emptySeg.type = tempSeg['type']
+                del self.waitingInLine[0]
+                del self.segParams[0]
+                del self.curves[0]
         
                 curve.appendToFile(emptySeg)
                 
-            sleep(3.0)
+            sleep(0.005)
             
             
             

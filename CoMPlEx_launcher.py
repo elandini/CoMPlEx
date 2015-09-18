@@ -10,4 +10,3 @@ if __name__ == '__main__':
     mainWin.show()
     
     app.exec_()
-    

@@ -1,2 +1,10 @@
 *.project
 *.pyc
+Data/curve_pt0_c1.txt
+*.name
+.idea/CoMPlEx.iml
+.idea/misc.xml
+*.xml
+*.par
+Data/curve_pt0_c10.txt
+*.txt
