@@ -107,11 +107,12 @@ class curve(mvobject.mvobject):
         return True
     
     
-    def appendToFile(self,p,fname=None,appendToCurve=False):
+    def appendToFile(self,p,fname=None,appendToCurve=True):
         
         path = self.filename if fname is None else fname
-        out_file = open(str(fname),"a")
+        out_file = open(str(path),"a")
         out_file.write("#\n")
+        i = len(self)
         out_file.write("# segmentIndex: {0}\n".format(i))
         ts = 'extend'
         if p.direction == 'far':
@@ -124,6 +125,8 @@ class curve(mvobject.mvobject):
         
         if appendToCurve:
             self.segments.append(p)
+
+        out_file.close()
     
     
     def changeK(self,newK):

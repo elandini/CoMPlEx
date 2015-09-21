@@ -14,7 +14,6 @@ import pyqtgraph as pg
 from os import makedirs
 from subprocess import Popen
 from os.path import splitext, split, join, exists
-#from ConfigParser import ConfigParser
 from configparser import ConfigParser
 import numpy as np
 from time import sleep
@@ -696,8 +695,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     
     def startExperiment(self,segments):
-        
-        culprit = self.sender()
+
         self.segmentsToDo = segments
         
         self.currentCurve = curve.curve()
@@ -707,6 +705,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             makedirs(self.curveDir)
         self.baseCurveName = self.fileNameRootLine.text() if self.fileNameRootLine.text() != '' else self.baseCurveName
         self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
+        self.currentCurve.k = self.kNumDbl.value()
         self.currentCurve.filename = self.currentCurvePath
         self.currentCurve.save(self.currentCurvePath)
         self.mapPoints = self.createSpiral(self.xStepNumMapNum.value(), self.yStepNumMapNum.value(), self.pointsToDo)
@@ -725,7 +724,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.plottedSegs,self.ramblingPlot = self.initCurvePlot(len(self.segmentsToDo)-1)
         self.curveData.chunkReceived.connect(self.ramblingPlotManager)
         self.xyRes.respReceived.connect(self.doSegment)
-        self.xyCmd.send('GZ',[])
+        #self.xyCmd.send('GZ',[])
     
     
     def initCurvePlot(self,segNum):
@@ -766,25 +765,36 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     
         
     def segmentDone(self,v):
-        
         if not v:
             if self.currentSeg > 0:
                 tempQueue = self.curveData.queue[0]
-                self.currData = np.array(tempQueue.queue)
-                #print(self.currData)
-                self.currentSaver.waitingInLine.append(tempQueue)
-                #print(self.segmentsToDo)
-                #print(self.currentSeg)
+                self.currZ,self.currF = self.emptyDataQueue(tempQueue)
+                self.currentSaver.waitingInLineZ.append(self.currZ)
+                self.currentSaver.waitingInLineF.append(self.currF)
                 self.currentSaver.segParams.append(self.segmentsToDo[self.currentSeg])
                 self.currentSaver.curves.append(self.currentCurve)
             del self.curveData.queue[0]
             self.cycleExp()
+
+
+    def emptyDataQueue(self,q):
+
+        t = zv = fv = []
+        for i in range(q.qsize()):
+            temp = q.get()
+            t.append(temp[0])
+            zv.append(temp[1])
+            fv.append(temp[2])
+        z = self.zVtoNm(np.array(zv))
+        f = np.array(fv)*self.kNumDbl.value()*self.kdNumDbl.value()
+
+        return z,f
         
         
     def cycleExp(self):
         if self.currentSeg > 0:
             #print(self.plottedSegs)
-            self.plottedSegs[self.currentSeg-1].setData(self.currData[::self.curveData.decimate,1],self.currData[::self.curveData.decimate,2])
+            self.plottedSegs[self.currentSeg-1].setData(self.currZ[::self.curveData.decimate],self.currF[::self.curveData.decimate])
         
         self.currentSeg += 1
         if self.currentSeg == len(self.segmentsToDo):
@@ -794,18 +804,21 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             self.currentSeg = 1
             if self.currentCurveNum == self.curvesToDo:
                 if self.currentPtNum+1 == self.pointsToDo:
+                    self.curveData.stateChanged.disconnect()
                     self.remoteStop()
                     return 
                 self.currentPtNum += 1
                 self.currentCurveNum = 0
                 self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
                 self.currentCurve.filename = self.currentCurvePath
+                self.currentCurve.k = self.kNumDbl.value()
                 self.currentCurve.save(self.currentCurvePath)
                 self.experimentRds()
                 self.makeAstep(self.mapPoints[self.currentPtNum][0], self.mapPoints[self.currentPtNum][1])
             else:
                 self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
                 self.currentCurve.filename = self.currentCurvePath
+                self.currentCurve.k = self.kNumDbl.value()
                 self.currentCurve.save(self.currentCurvePath)
                 self.experimentRds()
                 self.doSegment()
@@ -877,8 +890,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def stopExperiment(self):
         
         self.expInProgress = False
-        self.curveData.save = False
-        self.curveData.stateChanged.disconnect()
         self.xyRes.respReceived.disconnect()
         self.currentSaver.go = False
         self.xyCmd.send('S',[])
@@ -999,51 +1010,38 @@ class SaveThread(QThread):
     def __init__(self,parent):
         
         super(SaveThread,self).__init__()
-        self.waitingInLine = []
+        self.waitingInLineZ = []
+        self.waitingInLineF = []
         self.segParams = []
         self.curves = []
         self.go = True
         self.parent = parent
     
     
-    def emptyDataQueue(self,q):
-        
-        t = zv = fv = []
-        for i in iter(q.get,'STOP'):
-            temp = i
-            t.append(temp[0])
-            zv.append(temp[1])
-            fv.append(temp[2])
-        z = self.parent.zVtoNm(np.array(zv))
-        f = np.array(fv)*self.parent.kNumDbl.value()*self.parent.kdNumDbl.value()
-
-        return z,f    
-    
-    
     def run(self):
-        
-        while self.go:
-            print('going')
-            print(len(self.waitingInLine))
-            print('waiting in line')
-            if len(self.waitingInLine)>0:
-                tempQueue = self.waitingInLine[0]
+
+        print(self.curves)
+        while self.go or len(self.waitingInLineZ)>0:
+            # print('going')
+            # print(len(self.waitingInLineZ))
+            # print('waiting in line')
+            if len(self.waitingInLineZ)>0:
+                newz = self.waitingInLineZ[0]
+                newf = self.waitingInLineF[0]
                 tempSeg = self.segParams[0]
                 curve = self.curves[0]
-                newz,newf = self.emptyDataQueue(tempQueue)
-                print(newz)
-                emptySeg = segment.segment(newz,newf)
+                emptySeg = segment.segment(list(newz),list(newf))
                 emptySeg.k = self.parent.kNumDbl.value()
                 emptySeg.speed = tempSeg['speed']
                 emptySeg.direction = 'hold' if tempSeg['direction'] < 2 else ('far' if tempSeg['direction'] == 2 else 'near')
                 emptySeg.type = tempSeg['type']
-                del self.waitingInLine[0]
+                del self.waitingInLineZ[0]
+                del self.waitingInLineF[0]
                 del self.segParams[0]
                 del self.curves[0]
-        
                 curve.appendToFile(emptySeg)
                 
-            sleep(0.005)
+            sleep(0.01)
             
             
             
