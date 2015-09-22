@@ -37,6 +37,8 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
         self.toStartSpeedNumDbl.setValue(float(self.parser.get('PIEZO','tostartspeed')))
         
         self.deflSignCmbBox.setCurrentIndex(int(self.parser.get('OTHER','deflsign')))
+        self.maxDeflVoltNumDbl.setValue(float(self.parser.get('OTHER','dvmax')))
+        self.minDeflVoltNumDbl.setValue(float(self.parser.get('OTHER','dvmin')))
         self.sumThrNumDbl.setValue(float(self.parser.get('OTHER', 'sumthr')))
         self.iGainMaxNumDbl.setValue(float(self.parser.get('OTHER', 'imax')))
         self.pGainMaxNumDbl.setValue(float(self.parser.get('OTHER', 'pmax')))
@@ -62,6 +64,8 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
         self.parser.set('PIEZO', 'tostartspeed',str(self.toStartSpeedNumDbl.value()))
         
         self.parser.set('OTHER','deflsign',str(self.deflSignCmbBox.currentIndex()))
+        self.parser.set('OTHER','dvmax',str(self.maxDeflVoltNumDbl.value()))
+        self.parser.set('OTHER','dvmin',str(self.minDeflVoltNumDbl.value()))
         self.parser.set('OTHER', 'sumthr',str(self.sumThrNumDbl.value()))
         self.parser.set('OTHER', 'imax',str(self.iGainMaxNumDbl.value()))
         self.parser.set('OTHER', 'pmax',str(self.pGainMaxNumDbl.value()))

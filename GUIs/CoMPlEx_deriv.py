@@ -114,6 +114,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.saveMe = False
         
         self.expInProgress = False
+        self.engaging = False
         
         self.applyConfig()
         self.epzConnect()
@@ -211,14 +212,16 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.calibStimZOffsetNumDbl.setMinimum(zm)
         self.nearFar = (-1)**(int(parser.get('PIEZO','nearfar')))
         self.zPiezoProg.setInvertedAppearance(self.nearFar<0)
-        
-        self.maxFNumDbl.setMaximum(1)
+
+        self.deflVmax = float(parser.get('OTHER','dvmax'))
+        self.deflVmin = float(parser.get('OTHER','dvmin'))
+        self.maxFNumDbl.setMaximum(self.deflVmax)
         self.maxFNumDbl.setMinimum(0)
-        self.setPtNumDbl.setMaximum(1)
-        self.setPtNumDbl.setMinimum(-1)
-        self.endFcNumDbl.setMaximum(1)
+        self.setPtNumDbl.setMaximum(self.deflVmax)
+        self.setPtNumDbl.setMinimum(self.deflVmin)
+        self.endFcNumDbl.setMaximum(self.deflVmax)
         self.endFcNumDbl.setMinimum(0)
-        
+
         self.simplePath = parser.get('SIMPLE','path')
         self.action_Open_SiMPlE.setEnabled(len(self.simplePath) > 2)
         
@@ -314,11 +317,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def changeRefDefl(self):
         
-        self.maxFNumDbl.setMaximum(1*self.kdNumDbl.value()*self.kNumDbl.value())
+        self.maxFNumDbl.setMaximum(self.deflVmax*self.kdNumDbl.value()*self.kNumDbl.value())
         self.maxFNumDbl.setMinimum(0)
-        self.setPtNumDbl.setMaximum(1*self.kdNumDbl.value()*self.kNumDbl.value())
-        self.setPtNumDbl.setMinimum(-1*self.kdNumDbl.value()*self.kNumDbl.value())
-        self.endFcNumDbl.setMaximum(1*self.kdNumDbl.value()*self.kNumDbl.value())
+        self.setPtNumDbl.setMaximum(self.deflVmax*self.kdNumDbl.value()*self.kNumDbl.value())
+        self.setPtNumDbl.setMinimum(self.deflVmin*self.kdNumDbl.value()*self.kNumDbl.value())
+        self.endFcNumDbl.setMaximum(self.deflVmax*self.kdNumDbl.value()*self.kNumDbl.value())
         self.endFcNumDbl.setMinimum(0)
         
         self.label_7.setText('Set Point[V]' if self.kdNumDbl.value() == 1 else ('Set Point[nm]' if self.kNumDbl.value() == 1 else 'Set Point[pN]'))
@@ -407,6 +410,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         #deflValue = np.max(np.array(v[0])) REAL
         deflValue = np.max(np.array(v[1]))
+        if deflValue*self.kNumDbl.value()*self.kdNumDbl.value():
+            self.rdsLine.setText('Engaged')
         sumValue = np.max(np.array(v[2]))
         torsValue = np.max(np.array(v[1]))
         
@@ -657,10 +662,12 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     
     
     def engage(self):
-        
-        self.channelMng('Calib QPD')
+
         self.rdsLine.setText('Engaging...')
-        
+
+        self.curveIntpr.feedbackOn()
+        self.engaging = True
+
         
     def calibQPD(self):
         
@@ -919,8 +926,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def goToRest(self):
         
         self.rdsLine.setText('')
-        
-        pass
+        self.curveIntpr.goToRest()
     
     
     def experimentRds(self):

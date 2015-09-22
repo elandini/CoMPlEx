@@ -114,5 +114,14 @@ class Interpreter(object):
         self.cmd.send(*TYPES[type])
 
 
+    ## Turns on the feedback
+    def feedbackOn(self):
 
+        pass
+
+
+    ## Brings he system to the "rest" state
+    def goToRest(self):
+
+        self.cmd.send(*REST)
 
