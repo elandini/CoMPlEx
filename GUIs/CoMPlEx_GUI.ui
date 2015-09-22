@@ -947,7 +947,7 @@
      <item>
       <widget class="QTabWidget" name="functionsTabs">
        <property name="currentIndex">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="iconSize">
         <size>

@@ -1,5 +1,0 @@
-# TEXT EXPORT
-# springConstant: 1.0
-# units: m N
-# fzfd: 0
-#

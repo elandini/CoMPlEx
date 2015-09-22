@@ -23,6 +23,7 @@ pg.setConfigOption('foreground', 'k')
 
 import epz
 from libs.curveLib import curve,segment
+from libs.complex2epz import Interpreter
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -83,8 +84,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                                 self.qpdNpiezoDock:[self.action_QPD_and_piezo,'isVisible','setChecked','changed']}
         
         self.custFvsdSegs = []
-        self.currentZ = 0.0
-        self.currentF = 0.0
+        self.zTrigBase = 0.0
+        self.fTrigBase = 0.0
         self.nonCntF = 0.0
         
         self.programs = {'Engage':self.engage,'Calib QPD':self.calibQPD,'Calib K':self.calibK,
@@ -211,12 +212,12 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.nearFar = (-1)**(int(parser.get('PIEZO','nearfar')))
         self.zPiezoProg.setInvertedAppearance(self.nearFar<0)
         
-        self.maxFNumDbl.setMaximum(10)
-        self.maxFNumDbl.setMinimum(-10)
-        self.setPtNumDbl.setMaximum(10)
-        self.setPtNumDbl.setMinimum(-10)
-        self.endFcNumDbl.setMaximum(10)
-        self.endFcNumDbl.setMinimum(-10)
+        self.maxFNumDbl.setMaximum(1)
+        self.maxFNumDbl.setMinimum(0)
+        self.setPtNumDbl.setMaximum(1)
+        self.setPtNumDbl.setMinimum(-1)
+        self.endFcNumDbl.setMaximum(1)
+        self.endFcNumDbl.setMinimum(0)
         
         self.simplePath = parser.get('SIMPLE','path')
         self.action_Open_SiMPlE.setEnabled(len(self.simplePath) > 2)
@@ -229,6 +230,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.curveCmd = epz.CMD(self.curveEnv)
         self.monitCmd = epz.CMD(self.monitEnv)
+
+        self.curveIntpr = Interpreter(self.curveCmd)
+        self.monitIntpr = Interpreter(self.monitCmd)
         
         self.xyCmd = epz.CMD(self.monitEnv)
         self.xyCmd.command = self.xyCmdTag
@@ -246,9 +250,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.monitData.chunk = CHUNK
         
         self.curveData.start()
-        self.curveCmd.send('g',1)
+        self.curveIntpr.start()
         self.monitData.start()
-        self.monitCmd.send('g',1)
+        self.monitIntpr.start()
         self.xyRes.start()
     
     
@@ -310,12 +314,12 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def changeRefDefl(self):
         
-        self.maxFNumDbl.setMaximum(10*self.kdNumDbl.value()*self.kNumDbl.value())
-        self.maxFNumDbl.setMinimum(-10*self.kdNumDbl.value()*self.kNumDbl.value())
-        self.setPtNumDbl.setMaximum(10*self.kdNumDbl.value()*self.kNumDbl.value())
-        self.setPtNumDbl.setMinimum(-10*self.kdNumDbl.value()*self.kNumDbl.value())
-        self.endFcNumDbl.setMaximum(10*self.kdNumDbl.value()*self.kNumDbl.value())
-        self.endFcNumDbl.setMinimum(-10*self.kdNumDbl.value()*self.kNumDbl.value())
+        self.maxFNumDbl.setMaximum(1*self.kdNumDbl.value()*self.kNumDbl.value())
+        self.maxFNumDbl.setMinimum(0)
+        self.setPtNumDbl.setMaximum(1*self.kdNumDbl.value()*self.kNumDbl.value())
+        self.setPtNumDbl.setMinimum(-1*self.kdNumDbl.value()*self.kNumDbl.value())
+        self.endFcNumDbl.setMaximum(1*self.kdNumDbl.value()*self.kNumDbl.value())
+        self.endFcNumDbl.setMinimum(0)
         
         self.label_7.setText('Set Point[V]' if self.kdNumDbl.value() == 1 else ('Set Point[nm]' if self.kNumDbl.value() == 1 else 'Set Point[pN]'))
         
@@ -699,6 +703,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.segmentsToDo = segments
         
         self.currentCurve = curve.curve()
+
+        self.zTrigBase = 0
+        self.fTrigBase = 0
         
         self.curveDir = self.dirLine.text() if self.dirLine.text() != '' else self.curveDir
         if not exists(self.curveDir):
@@ -753,15 +760,26 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def doSegment(self):
         # send segment parameters
         segment = self.segmentsToDo[self.currentSeg]
-        zTrigger = segment['zLim']
-        fTrigger = segment['fLim']
+        deflectionToV = self.deflSign/(self.kNumDbl.value()*self.kdNumDbl.value())
+        directionSign = (-1)**(int(segment['direction'] == 'far'))
+        zDeltaSign = self.nearFar*directionSign
+        zTrigger = self.zNmtoV(self.zTrigBase + segment['zLim']*zDeltaSign)
+        fTrigger = (self.fTrigBase + segment['fLim']*directionSign)*deflectionToV
         tTrigger = segment['holdT']
         
-        zTriggerEnabled = zTrigger != 0 and segment['speed'] != 0
-        fTriggerEnabled = fTrigger != 0 and segment['speed'] != 0
-        tTriggerEnabled = segment['speed'] == 0 
+        zTriggerEnabled = int(zTrigger != 0)
+        fTriggerEnabled = int(fTrigger != 0)
+        tTriggerEnabled = int(segment['speed'] == 0)
+
+        self.curveIntpr.setTriggersSwitch(tTriggerEnabled,zTriggerEnabled,fTriggerEnabled)
+        self.curveIntpr.setZposStopTrig(zTrigger,int(zDeltaSign<0))
+        self.curveIntpr.setDeflStopTrig(fTrigger,int(directionSign*self.deflSign<0))
+        self.curveIntpr.setTimeStopTrig(tTrigger,0)
+
+        if segment['type'] == 'Fconst':
+            self.curveIntpr.setSetPoint(self.fTrigBase*deflectionToV)
         
-        self.curveData.save = True
+        self.curveIntpr.startSegment(segment['type'])
     
         
     def segmentDone(self,v):
@@ -769,6 +787,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             if self.currentSeg > 0:
                 tempQueue = self.curveData.queue[0]
                 self.currZ,self.currF = self.emptyDataQueue(tempQueue)
+                self.zTrigBase = np.mean(self.currZ[-20:])
+                self.fTrigBase = np.mean(self.currF[-20:])
                 self.currentSaver.waitingInLineZ.append(self.currZ)
                 self.currentSaver.waitingInLineF.append(self.currF)
                 self.currentSaver.segParams.append(self.segmentsToDo[self.currentSeg])
@@ -786,7 +806,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             zv.append(temp[1])
             fv.append(temp[2])
         z = self.zVtoNm(np.array(zv))
-        f = np.array(fv)*self.kNumDbl.value()*self.kdNumDbl.value()
+        f = np.array(fv)*self.kNumDbl.value()*self.kdNumDbl.value()*self.deflSign
 
         return z,f
         
@@ -832,7 +852,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curvesToDo = self.curveNumNum.value()
         seg = {}
         seg['zLim'] = self.startZNumDbl.value()
-        seg['fLim'] = self.maxFNumDbl.minimum()
+        seg['fLim'] = 0
         seg['speed'] = self.toStartSpeed
         seg['direction'] = 2
         seg['holdT'] = 0
@@ -847,7 +867,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curvesToDo = self.curveNumNum.value()
         seg = {}
         seg['zLim'] = self.startZNumDbl.value()
-        seg['fLim'] = self.maxFNumDbl.minimum()
+        seg['fLim'] = 0
         seg['speed'] = self.toStartSpeed
         seg['direction'] = 2
         seg['holdT'] = 0
@@ -863,7 +883,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         seg = {}
         seg['zLim'] = self.startZcNumDbl.value()
-        seg['fLim'] = self.endFcNumDbl.minimum()
+        seg['fLim'] = 0
         seg['speed'] = self.toStartSpeed
         seg['direction'] = 2
         seg['holdT'] = 0
@@ -878,7 +898,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curvesToDo = self.curveNumcNum.value()
         seg = {}
         seg['zLim'] = self.startZcNumDbl.value()
-        seg['fLim'] = self.endFcNumDbl.minimum()
+        seg['fLim'] = 0
         seg['speed'] = self.toStartSpeed
         seg['direction'] = 2
         seg['holdT'] = 0
