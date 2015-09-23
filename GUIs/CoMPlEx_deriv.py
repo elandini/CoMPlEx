@@ -88,7 +88,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.fTrigBase = 0.0
         self.nonCntF = 0.0
         
-        self.programs = {'Engage':self.engage,'Calib QPD':self.calibQPD,'Calib K':self.calibK,
+        self.programs = {'Engage':self.remoteEngage,'Calib QPD':self.remoteCalibQPD,'Calib K':self.calibK,
                          'FvsD curve':self.fvsd,'FvsD map':self.fvsdMap,'Custom curve':self.custom,'Custom map':self.customMap}
         
         self.cfgFile = str(QFileDialog.getOpenFileName(self,'Select a configuration file',filter='Ini (*.ini)'))
@@ -115,6 +115,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.expInProgress = False
         self.engaging = False
+        self.engaged = False
         
         self.applyConfig()
         self.epzConnect()
@@ -222,6 +223,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.endFcNumDbl.setMaximum(self.deflVmax)
         self.endFcNumDbl.setMinimum(0)
 
+        self.deflectionToV = self.deflSign/(self.kNumDbl.value()*self.kdNumDbl.value())
+
         self.simplePath = parser.get('SIMPLE','path')
         self.action_Open_SiMPlE.setEnabled(len(self.simplePath) > 2)
         
@@ -313,6 +316,17 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def uploadEpzParam(self):
         
         culprit = self.sender()
+
+        if culprit is self.uploadPGainBtn:
+            self.curveIntpr.setP(self.pGainNumDbl.value())
+        elif culprit is self.uploadIGainBtn:
+            self.curveIntpr.setI(self.iGainNumDbl.value())
+        elif culprit is self.uploadSetPtBtn:
+            self.curveIntpr.setP(self.setPtNumDbl.value()*self.deflectionToV)
+        elif culprit is self.uploadFbBtn:
+            self.curveIntpr.setP(self.pGainNumDbl.value())
+            self.curveIntpr.setI(self.iGainNumDbl.value())
+            self.curveIntpr.setP(self.setPtNumDbl.value()*self.deflectionToV)
         
         
     def changeRefDefl(self):
@@ -325,8 +339,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.endFcNumDbl.setMinimum(0)
         
         self.label_7.setText('Set Point[V]' if self.kdNumDbl.value() == 1 else ('Set Point[nm]' if self.kNumDbl.value() == 1 else 'Set Point[pN]'))
-        
-        if self.kdNumDbl.value() != 1 and self.kNumDbl.value() != 1:
+
+        self.deflectionToV = self.deflSign/(self.kNumDbl.value()*self.kdNumDbl.value())
+
+        if self.kdNumDbl.value() != 1 and self.kNumDbl.value() != 1 and self.engaged:
             self.channelMng('FvsD curve')
             self.channelMng('FvsD curve')
             self.channelMng('FvsD map')
@@ -407,11 +423,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         
     def updateQPD(self,v):
-        
-        #deflValue = np.max(np.array(v[0])) REAL
-        deflValue = np.max(np.array(v[1]))
-        if deflValue*self.kNumDbl.value()*self.kdNumDbl.value():
-            self.rdsLine.setText('Engaged')
+
+        deflValue = np.array(v[1])
         sumValue = np.max(np.array(v[2]))
         torsValue = np.max(np.array(v[1]))
         
@@ -636,7 +649,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         channel = self.channelCmbBox.currentText()
         self.channelCmbBox.setEnabled(True)
-        if channel == 'Engage' or channel == 'Calib QPD' or channel == 'Calib K':
+        if channel == 'Calib QPD' or channel == 'Calib K':
+            self.goToRest()
+        elif channel == 'Engage':
+            self.curveData.chunkReceived.disconnect()
             self.goToRest()
         else:
             self.stopExperiment()
@@ -661,18 +677,44 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.xyCmd.send('M',[step1,step2])
     
     
-    def engage(self):
+    def remoteEngage(self):
 
         self.rdsLine.setText('Engaging...')
 
+        self.curveIntpr.setP(self.pGainNumDbl.value())
+        self.curveIntpr.setI(self.iGainNumDbl.value())
+        self.curveIntpr.setSetPoint(self.setPtNumDbl.value()*self.deflectionToV)
+
+        self.curveIntpr.setTriggersSwitch(0,0,0)
         self.curveIntpr.feedbackOn()
         self.engaging = True
+        self.curveData.chunkReceived.connect(self.engage)
+
+
+    def engage(self,v):
+
+        self.ramblingPlotManager(v)
+
+        if np.mean(np.array(v[2])/self.deflectionToV)>=self.setPtNumDbl.value():
+            self.engaged = True
 
         
-    def calibQPD(self):
+    def remoteCalibQPD(self):
         
         self.channelMng('Calib K')
         self.rdsLine.setText('QPD calibration')
+        self.curveIntpr.setSine()
+        self.curveData.stateChanged.connect(self.calibQPD)
+
+
+    def calibQPD(self):
+
+        tempQueue = self.curveData.queue[0]
+        zStim,fRes = self.emptyDataQueue(tempQueue)
+        dRes = fRes/(self.kNumDbl.value()*self.kdNumDbl.value())
+
+        shiftedStim = (zStim*exp((np.pi/2)*1j)).imag
+
         
         
     def calibK(self):
@@ -684,7 +726,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.rdsLine.setText('Elastic constant calibration')
 
 
-    # Segment management functions    
+    # Curve management functions
     
     def createSpiral(self,delta1,delta2,pointsNr):
         
@@ -761,17 +803,16 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def ramblingPlotManager(self,v):
         
         data = np.array(v)
-        self.ramblingPlot.setData(data[:,1],data[:,1])
+        self.ramblingPlot.setData(self.zVtoNm(data[:,1]),data[:,1]/self.deflectionToV)
             
     
     def doSegment(self):
         # send segment parameters
         segment = self.segmentsToDo[self.currentSeg]
-        deflectionToV = self.deflSign/(self.kNumDbl.value()*self.kdNumDbl.value())
         directionSign = (-1)**(int(segment['direction'] == 'far'))
         zDeltaSign = self.nearFar*directionSign
         zTrigger = self.zNmtoV(self.zTrigBase + segment['zLim']*zDeltaSign)
-        fTrigger = (self.fTrigBase + segment['fLim']*directionSign)*deflectionToV
+        fTrigger = (self.fTrigBase + segment['fLim']*directionSign)*self.deflectionToV
         tTrigger = segment['holdT']
         
         zTriggerEnabled = int(zTrigger != 0)
@@ -784,7 +825,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveIntpr.setTimeStopTrig(tTrigger,0)
 
         if segment['type'] == 'Fconst':
-            self.curveIntpr.setSetPoint(self.fTrigBase*deflectionToV)
+            self.curveIntpr.setSetPoint(self.fTrigBase*self.deflectionToV)
         
         self.curveIntpr.startSegment(segment['type'])
     
@@ -813,7 +854,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             zv.append(temp[1])
             fv.append(temp[2])
         z = self.zVtoNm(np.array(zv))
-        f = np.array(fv)*self.kNumDbl.value()*self.kdNumDbl.value()*self.deflSign
+        f = np.array(fv)/self.deflectionToV
 
         return z,f
         
@@ -920,7 +961,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.xyRes.respReceived.disconnect()
         self.currentSaver.go = False
         self.xyCmd.send('S',[])
-        self.rdsLine.setText('')
+        self.goToRest()
         
     
     def goToRest(self):

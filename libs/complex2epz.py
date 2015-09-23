@@ -117,6 +117,10 @@ class Interpreter(object):
     ## Turns on the feedback
     def feedbackOn(self):
 
+        self.cmd.send('E',2)
+
+
+    def setSine(self):
         pass
 
 
