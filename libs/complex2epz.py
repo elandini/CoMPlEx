@@ -4,7 +4,7 @@ FDBK = ['O',2]
 LIN = ['O',3]
 SIN = ['O',4]
 
-TYPES = {'vConst':LIN,'fConst':FDBK,'zConst':NEUTRAL}
+TYPES = {'Vconst':LIN,'Fconst':FDBK,'Zconst':NEUTRAL}
 
 # N set the triggers. The triggers are, in order, adc (deflection), dac (z position), time
 # 1 = used, 0 = not used

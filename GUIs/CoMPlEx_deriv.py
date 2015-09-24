@@ -16,6 +16,7 @@ from subprocess import Popen
 from os.path import splitext, split, join, exists
 from configparser import ConfigParser
 import numpy as np
+from scipy.signal import hilbert
 from time import sleep
 
 pg.setConfigOption('background', 'w')
@@ -31,8 +32,8 @@ except AttributeError:
     def _fromUtf8(s):
         return s
 
-CHUNK = 10000
-DEC = 1000
+CHUNK = 1000
+DEC = 10
 
 '''
 1 #0033CC
@@ -52,6 +53,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     pens = [{'color':'#0033CC','width':1},{'color':'#FF0000','width':1},{'color':'#009900','width':1},
             {'color':'#9933FF','width':1},{'color':'#996600','width':1},{'color':'#660033','width':1},
             {'color':'#000000','width':1},{'color':'#8D9494','width':1}]
+    ramblingPen = {'color':'#0033CC','width':2}
     
     def __init__(self,parent = None):
     
@@ -649,10 +651,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         channel = self.channelCmbBox.currentText()
         self.channelCmbBox.setEnabled(True)
+        self.curveData.chunkReceived.disconnect()
         if channel == 'Calib QPD' or channel == 'Calib K':
             self.goToRest()
         elif channel == 'Engage':
-            self.curveData.chunkReceived.disconnect()
             self.goToRest()
         else:
             self.stopExperiment()
@@ -685,6 +687,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveIntpr.setI(self.iGainNumDbl.value())
         self.curveIntpr.setSetPoint(self.setPtNumDbl.value()*self.deflectionToV)
 
+        self.ramblingPlot = self.centralPlot.plot([],[],pen = self.ramblingPen)
+
         self.curveIntpr.setTriggersSwitch(0,0,0)
         self.curveIntpr.feedbackOn()
         self.engaging = True
@@ -694,9 +698,18 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def engage(self,v):
 
         self.ramblingPlotManager(v)
+        print(np.mean(np.array(v[2])/self.deflectionToV))
 
         if np.mean(np.array(v[2])/self.deflectionToV)>=self.setPtNumDbl.value():
             self.engaged = True
+            self.rdsLine.setText('Engaged')
+            self.channelMng('Calib QPD')
+            self.channelMng('Calib K')
+        else:
+            self.engaged = False
+            self.rdsLine.setText('Engaging...')
+            self.channelMng('Calib QPD','-')
+            self.channelMng('Calib K','-')
 
         
     def remoteCalibQPD(self):
@@ -713,8 +726,18 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         zStim,fRes = self.emptyDataQueue(tempQueue)
         dRes = fRes/(self.kNumDbl.value()*self.kdNumDbl.value())
 
-        shiftedStim = (zStim*exp((np.pi/2)*1j)).imag
+        dRes -= np.mean(dRes)
+        zStim -= np.mean(zStim)
 
+        shiftedStim = -1*(hilbert(zStim)).imag
+        ampl = (np.max(zStim)-np.min(zStim))/2
+
+        re = np.multiply(dRes,shiftedStim)*2/(ampl**2)
+        im = np.multiply(dRes,zStim)*2/(ampl**2)
+
+        kd = abs(np.mean(re)+1j*np.mean(im))
+
+        self.kdNumDbl.setValue(kd)
         
         
     def calibK(self):
@@ -790,7 +813,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         n = len(self.pens)
         for i in range(len(self.segmentsToDo)):
             plots.append(self.centralPlot.plot([],[],pen=self.pens[i%n])),#i,i+1,i+2],[i,i*2,i*3],pen=self.pens[i%n]))
-        ramblingPlot = self.centralPlot.plot([],[],pen=self.pens[0])
+        ramblingPlot = self.centralPlot.plot([],[],pen=self.ramblingPen)
         return plots, ramblingPlot
     
     
@@ -803,7 +826,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def ramblingPlotManager(self,v):
         
         data = np.array(v)
-        self.ramblingPlot.setData(self.zVtoNm(data[:,1]),data[:,1]/self.deflectionToV)
+        self.ramblingPlot.setData(self.zVtoNm(data[1,:]),data[2,:]/self.deflectionToV)
             
     
     def doSegment(self):
@@ -862,7 +885,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def cycleExp(self):
         if self.currentSeg > 0:
             #print(self.plottedSegs)
-            self.plottedSegs[self.currentSeg-1].setData(self.currZ[::self.curveData.decimate],self.currF[::self.curveData.decimate])
+            self.plottedSegs[self.currentSeg-1].setData(self.currZ[::],self.currF[::])
         
         self.currentSeg += 1
         if self.currentSeg == len(self.segmentsToDo):
@@ -967,7 +990,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def goToRest(self):
         
         self.rdsLine.setText('')
-        self.curveIntpr.goToRest()
+        #self.curveIntpr.goToRest()
     
     
     def experimentRds(self):
@@ -1053,7 +1076,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def epzConnections(self):
         
         self.curveData.yDataReceived.connect(self.sendZ)
-        self.monitData.chunkReceived.connect(self.updateQPD)
+        #self.monitData.chunkReceived.connect(self.updateQPD)
         self.monitData.xDataReceived.connect(self.deflNumDbl.setValue)
         self.monitData.yDataReceived.connect(self.torsNumDbl.setValue)
         self.monitData.zDataReceived.connect(self.sumNumDbl.setValue)
