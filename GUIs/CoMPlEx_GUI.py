@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'GUIs\CoMPlEx_GUI.ui'
 #
-# Created: Wed Sep 16 15:10:52 2015
+# Created: Mon Sep 28 14:25:39 2015
 #      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
@@ -864,12 +864,14 @@ class Ui_CoMPlEx_GUI(object):
         self.label_39.setObjectName(_fromUtf8("label_39"))
         self.formLayout.setWidget(0, QtGui.QFormLayout.LabelRole, self.label_39)
         self.xStepNumNum = QtGui.QSpinBox(self.groupBox_2)
+        self.xStepNumNum.setMaximum(2000)
         self.xStepNumNum.setObjectName(_fromUtf8("xStepNumNum"))
         self.formLayout.setWidget(0, QtGui.QFormLayout.FieldRole, self.xStepNumNum)
         self.label_40 = QtGui.QLabel(self.groupBox_2)
         self.label_40.setObjectName(_fromUtf8("label_40"))
         self.formLayout.setWidget(1, QtGui.QFormLayout.LabelRole, self.label_40)
         self.yStepNumNum = QtGui.QSpinBox(self.groupBox_2)
+        self.yStepNumNum.setMaximum(2000)
         self.yStepNumNum.setObjectName(_fromUtf8("yStepNumNum"))
         self.formLayout.setWidget(1, QtGui.QFormLayout.FieldRole, self.yStepNumNum)
         self.label_41 = QtGui.QLabel(self.groupBox_2)
@@ -887,18 +889,21 @@ class Ui_CoMPlEx_GUI(object):
         self.label_36.setObjectName(_fromUtf8("label_36"))
         self.formLayout_2.setWidget(0, QtGui.QFormLayout.LabelRole, self.label_36)
         self.xStepNumMapNum = QtGui.QSpinBox(self.groupBox)
+        self.xStepNumMapNum.setMaximum(2000)
         self.xStepNumMapNum.setObjectName(_fromUtf8("xStepNumMapNum"))
         self.formLayout_2.setWidget(0, QtGui.QFormLayout.FieldRole, self.xStepNumMapNum)
         self.label_37 = QtGui.QLabel(self.groupBox)
         self.label_37.setObjectName(_fromUtf8("label_37"))
         self.formLayout_2.setWidget(1, QtGui.QFormLayout.LabelRole, self.label_37)
         self.yStepNumMapNum = QtGui.QSpinBox(self.groupBox)
+        self.yStepNumMapNum.setMaximum(2000)
         self.yStepNumMapNum.setObjectName(_fromUtf8("yStepNumMapNum"))
         self.formLayout_2.setWidget(1, QtGui.QFormLayout.FieldRole, self.yStepNumMapNum)
         self.label_38 = QtGui.QLabel(self.groupBox)
         self.label_38.setObjectName(_fromUtf8("label_38"))
         self.formLayout_2.setWidget(2, QtGui.QFormLayout.LabelRole, self.label_38)
         self.ptNumMapNum = QtGui.QSpinBox(self.groupBox)
+        self.ptNumMapNum.setMaximum(10000)
         self.ptNumMapNum.setObjectName(_fromUtf8("ptNumMapNum"))
         self.formLayout_2.setWidget(2, QtGui.QFormLayout.FieldRole, self.ptNumMapNum)
         self.verticalLayout_7.addWidget(self.groupBox)

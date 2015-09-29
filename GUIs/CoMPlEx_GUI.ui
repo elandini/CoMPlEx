@@ -947,7 +947,7 @@
      <item>
       <widget class="QTabWidget" name="functionsTabs">
        <property name="currentIndex">
-        <number>3</number>
+        <number>0</number>
        </property>
        <property name="iconSize">
         <size>
@@ -1720,7 +1720,11 @@
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QSpinBox" name="xStepNumNum"/>
+             <widget class="QSpinBox" name="xStepNumNum">
+              <property name="maximum">
+               <number>2000</number>
+              </property>
+             </widget>
             </item>
             <item row="1" column="0">
              <widget class="QLabel" name="label_40">
@@ -1730,7 +1734,11 @@
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QSpinBox" name="yStepNumNum"/>
+             <widget class="QSpinBox" name="yStepNumNum">
+              <property name="maximum">
+               <number>2000</number>
+              </property>
+             </widget>
             </item>
             <item row="2" column="0">
              <widget class="QLabel" name="label_41">
@@ -1759,7 +1767,11 @@
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QSpinBox" name="xStepNumMapNum"/>
+             <widget class="QSpinBox" name="xStepNumMapNum">
+              <property name="maximum">
+               <number>2000</number>
+              </property>
+             </widget>
             </item>
             <item row="1" column="0">
              <widget class="QLabel" name="label_37">
@@ -1769,7 +1781,11 @@
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QSpinBox" name="yStepNumMapNum"/>
+             <widget class="QSpinBox" name="yStepNumMapNum">
+              <property name="maximum">
+               <number>2000</number>
+              </property>
+             </widget>
             </item>
             <item row="2" column="0">
              <widget class="QLabel" name="label_38">
@@ -1779,7 +1795,11 @@
              </widget>
             </item>
             <item row="2" column="1">
-             <widget class="QSpinBox" name="ptNumMapNum"/>
+             <widget class="QSpinBox" name="ptNumMapNum">
+              <property name="maximum">
+               <number>10000</number>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>

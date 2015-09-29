@@ -21,8 +21,15 @@ from time import sleep
 
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
-
-import epz
+try:
+    import epz as tempEpz
+    import inspect
+    _,_,keys,_ = inspect.getargspec(tempEpz.CMD.__init__())
+    if 'tag' not in keys:
+        from libs.epz import epz as tempEpz
+    epz = tempEpz
+except:
+    from libs.epz import epz
 from libs.curveLib import curve,segment
 from libs.complex2epz import Interpreter
 
@@ -107,8 +114,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.alignPlot.plotItem.setRange(xRange = [-10,10],yRange = [-10,10])
         self.alignPlot.plotItem.setMouseEnabled(False,False)
         
-        self.curveEnv = epz.Environment()
-        self.monitEnv = epz.Environment()
+        self.complexEnv = epz.Environment()
     
         self.currentCurve = None
         self.currentCurveNum = 0
@@ -125,6 +131,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.actionNdocksConnections()
         self.buttonsConnections()
         self.genericConnetions()
+        self.startEpzs()
     
     
     def channelMng(self,channel,operation = '+'):
@@ -182,14 +189,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.xyCmdTag = parser.get('CONN','xycmd')
         self.xyResTag = parser.get('CONN','xyres')
         
-        self.curveEnv.pubport = self.forwarderPubPort
-        self.curveEnv.subport = self.forwarderSubPort
-        self.curveEnv.device = self.curveName
-        self.curveEnv.epserver = self.forwarderIP
-        self.monitEnv.pubport = self.forwarderPubPort
-        self.monitEnv.subport = self.forwarderSubPort
-        self.monitEnv.device = self.monitName
-        self.monitEnv.epserver = self.forwarderIP
+        self.complexEnv.pubport = self.forwarderPubPort
+        self.complexEnv.subport = self.forwarderSubPort
+        self.complexEnv.device = self.curveName
+        self.complexEnv.epserver = self.forwarderIP
         
         zM = float(parser.get('PIEZO','zmax'))*1000
         zm = float(parser.get('PIEZO','zmin'))*1000
@@ -229,24 +232,19 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
         self.simplePath = parser.get('SIMPLE','path')
         self.action_Open_SiMPlE.setEnabled(len(self.simplePath) > 2)
-        
+
         
     def epzConnect(self):
         
-        self.curveData = epz.QtDATA(self.curveEnv)
-        self.monitData = epz.QtDATA(self.monitEnv)
-        
-        self.curveCmd = epz.CMD(self.curveEnv)
-        self.monitCmd = epz.CMD(self.monitEnv)
+        self.curveData = epz.QtDATA(self.complexEnv)
+        self.monitData = epz.QtDATA(self.complexEnv,device=self.monitName,tag='MON')
 
-        self.curveIntpr = Interpreter(self.curveCmd)
-        self.monitIntpr = Interpreter(self.monitCmd)
+        self.curveIntpr = Interpreter(self.complexEnv)
+        self.monitIntpr = Interpreter(self.complexEnv,self.monitName)
         
-        self.xyCmd = epz.CMD(self.monitEnv)
-        self.xyCmd.command = self.xyCmdTag
+        self.xyCmd = epz.CMD(self.complexEnv,self.monitName,self.xyCmdTag)
         
-        self.xyRes = epz.QtCMDREC(self.monitEnv)
-        self.xyRes.tag = self.xyResTag
+        self.xyRes = epz.QtCMDREC(self.complexEnv,self.monitName,self.xyResTag)
         
         self.curveData.notify = True
         self.curveData.save = False
@@ -256,13 +254,17 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveData.chunk = CHUNK
         self.curveData.decimate = DEC
         self.monitData.chunk = CHUNK
-        
+
+
+    def startEpzs(self):
+
+        sleep(0.2)
         self.curveData.start()
-        self.curveIntpr.start()
+        self.curveIntpr.startDev()
+        self.monitIntpr.startDev()
         self.monitData.start()
-        self.monitIntpr.start()
         self.xyRes.start()
-    
+
     
     def saveParams(self):
         
@@ -670,7 +672,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                     self.yMinusBtn: ['M',[0,-1*self.yStepNumNum.value()]],
                     self.goCenterBtn: ['GZ',[]],
                     self.resetXYBtn: ['SZ',[]]}
-        
+        print(cmdDict[culprit][0])
+        print(cmdDict[culprit][1])
         self.xyCmd.send(cmdDict[culprit][0],cmdDict[culprit][1])
         
         
@@ -990,7 +993,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def goToRest(self):
         
         self.rdsLine.setText('')
-        #self.curveIntpr.goToRest()
+        self.curveIntpr.goToRest()
     
     
     def experimentRds(self):

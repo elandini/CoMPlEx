@@ -6,6 +6,16 @@ SIN = ['O',4]
 
 TYPES = {'Vconst':LIN,'Fconst':FDBK,'Zconst':NEUTRAL}
 
+try:
+    import epz as tempEpz
+    import inspect
+    _,_keys,_ = inspect.getargspec(tempEpz.CMD.__init__())
+    if 'tag' not in keys:
+        from libs.epz import epz as tempEpz
+    epz = tempEpz
+except:
+    from libs.epz import epz
+
 # N set the triggers. The triggers are, in order, adc (deflection), dac (z position), time
 # 1 = used, 0 = not used
 
@@ -23,13 +33,15 @@ TYPES = {'Vconst':LIN,'Fconst':FDBK,'Zconst':NEUTRAL}
 
 class Interpreter(object):
 
-    def __init__(self,cmd):
+    def __init__(self,env,device=None,tag='CMD'):
 
-        self.cmd = cmd
+        if device is not None:
+            env.device = device
+        self.cmd = epz.CMD(env,tag=tag)
 
 
     ## Start the SPI communication
-    def start(self):
+    def startDev(self):
 
         self.cmd.send('g',1)
 
