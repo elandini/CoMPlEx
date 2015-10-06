@@ -237,7 +237,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def epzConnect(self):
         
         self.curveData = epz.QtDATA(self.complexEnv)
-        self.monitData = epz.QtDATA(self.complexEnv,device=self.monitName,tag='MON')
+        self.monitData = epz.QtDATA(self.complexEnv,device=self.monitName,tag='DATA')
 
         self.curveIntpr = Interpreter(self.complexEnv)
         self.monitIntpr = Interpreter(self.complexEnv,self.monitName)
@@ -254,6 +254,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveData.chunk = CHUNK
         self.curveData.decimate = DEC
         self.monitData.chunk = CHUNK
+        self.monitData.decimate = DEC
+        self.monitData.notifyLength = 50
 
 
     def startEpzs(self):
@@ -326,11 +328,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         elif culprit is self.uploadIGainBtn:
             self.curveIntpr.setI(self.iGainNumDbl.value())
         elif culprit is self.uploadSetPtBtn:
-            self.curveIntpr.setP(self.setPtNumDbl.value()*self.deflectionToV)
+            self.curveIntpr.setSetPoint(self.setPtNumDbl.value()*self.deflectionToV)
         elif culprit is self.uploadFbBtn:
             self.curveIntpr.setP(self.pGainNumDbl.value())
             self.curveIntpr.setI(self.iGainNumDbl.value())
-            self.curveIntpr.setP(self.setPtNumDbl.value()*self.deflectionToV)
+            self.curveIntpr.setSetPoint(self.setPtNumDbl.value()*self.deflectionToV)
         
         
     def changeRefDefl(self):
@@ -426,42 +428,37 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             self.laserSpot.setSymbolBrush(qg.QColor(int(25.5*newVal),0,0,128))
         
         
-    def updateQPD(self,v):
+    def updateDefl(self,v):
+
+        deflValue = np.array(v[1])
+        # CANCELLA NELLA VERSIONE DEFINITIVA
+        deflValue *=10
+        # CANCELLA NELLA VERSIONE DEFINITIVA
+        self.deflNumDbl.setValue(deflValue)
+
+
+    def updateDefl(self,v):
 
         deflValue = np.array(v[1])
         sumValue = np.max(np.array(v[2]))
         torsValue = np.max(np.array(v[1]))
-        
+
         # CANCELLA NELLA VERSIONE DEFINITIVA
         deflValue *=10
         sumValue *=10
         torsValue *=10
         # CANCELLA NELLA VERSIONE DEFINITIVA
-        
+
         self.deflNumDbl.setValue(deflValue)
         self.torsNumDbl.setValue(torsValue)
         self.sumNumDbl.setValue(sumValue)
-   
+
+
         
     def sendZ(self,v):
-        
-        zValue = v
-        
-        # CANCELLA NELLA VERSIONE DEFINITIVA
-        zValue *=10
-        # CANCELLA NELLA VERSIONE DEFINITIVA
-        
+
+        zValue = self.zVtoNm(v)/1000.0
         self.zPiezoNumDbl.setValue(zValue)
-    
-        
-    def close(self):
-        
-        self.motorsDock.visibilityChanged.disconnect()
-        self.settingsDock.visibilityChanged.disconnect()
-        self.remoteDock.visibilityChanged.disconnect()
-        self.qpdNpiezoDock.visibilityChanged.disconnect()
-        
-        super(CoMPlEx_main,self).close()
         
         
     def startAnalyzing(self):
@@ -1095,7 +1092,32 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.segCmbBox.currentIndexChanged.connect(self.showSeg)
         self.kdNumDbl.valueChanged.connect(self.changeRefDefl)
         self.kNumDbl.valueChanged.connect(self.changeRefDefl)
-        
+
+
+    def closeEvent(self, event):
+        print(self.sender())
+        reply = QtGui.QMessageBox.question(self, 'Message',
+            "Do you really want to close CoMPlEx?", QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+
+        if reply == QtGui.QMessageBox.Yes:
+            self.curveIntpr.stopDev()
+            self.monitIntpr.stopDev()
+
+            reply = QtGui.QMessageBox.question(self, 'Message',
+                                               "Do you want to kill the devices (If you say yes, you'll have to turn the towers off and then on before using CoMPlEx again)?",
+                                               QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+            if reply == QtGui.QMessageBox.Yes:
+                self.curveIntpr.killDev()
+                self.monitIntpr.killDev()
+                self.xyCmd.send('K')
+
+            self.motorsDock.visibilityChanged.disconnect()
+            self.settingsDock.visibilityChanged.disconnect()
+            self.remoteDock.visibilityChanged.disconnect()
+            self.qpdNpiezoDock.visibilityChanged.disconnect()
+            event.accept()
+        else:
+            event.ignore()
         
     
 class SaveThread(QThread):

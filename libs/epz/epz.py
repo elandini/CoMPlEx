@@ -84,6 +84,7 @@ class CMD(object):
             values = [values]
         for v in values:
             msg = msg + ':' + str(v)
+        print(msg)
         self.socket.send_string(msg)
 
 
@@ -208,6 +209,7 @@ class Skeldata(object):
 
             self.tick -= 1
             if self.tick == 0:
+                print(body)
                 self.actOnValue(data)
                 self.tick = self.notifyLength
 
