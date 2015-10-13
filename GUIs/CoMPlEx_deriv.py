@@ -105,7 +105,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             self.cfgFile = 'config/defaultCfg.ini'
         self.channelCmbBox.clear()
         self.channelMng('Engage')
-        self.hwDial = hwConfig_dial(self,self.cfgFile)
         self.laserSpot = self.alignPlot.plot([0],[0],pen = None, symbol = 'o', symbolPen = 'r', symbolSize = 50, symbolBrush = qg.QColor(0,0,0,128))
         self.alignPlot.plot([0],[0],pen = None, symbol = 'o', symbolPen = {'color':'b','width':2}, symbolSize = 50, symbolBrush = qg.QColor(255,255,255,0))
         self.alignPlot.plotItem.showAxis('top',True)
@@ -262,9 +261,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
         sleep(0.2)
         self.curveData.start()
+        self.monitData.start()
         self.curveIntpr.startDev()
         self.monitIntpr.startDev()
-        self.monitData.start()
         self.xyRes.start()
 
     
@@ -377,6 +376,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         culprit = self.sender()
         
         if culprit is self.action_Edit_config:
+            self.hwDial = hwConfig_dial(self,self.cfgFile)
             self.hwDial.exec_()
         elif culprit is self.showZTravelBtn:
             self.plotSeg()
@@ -738,6 +738,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         kd = abs(np.mean(re)+1j*np.mean(im))
 
         self.kdNumDbl.setValue(kd)
+
+        del self.curveData.queue[0]
         
         
     def calibK(self):
