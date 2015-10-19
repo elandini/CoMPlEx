@@ -1,8 +1,14 @@
-from GUIs.hwConfig_dialog import *
-from PyQt4.QtGui import QDialog,QMessageBox,QFileDialog
-#from ConfigParser import ConfigParser
+from GUIs.CoMPlEx_hwConfig_Dialog import Ui_hwConfig_dialog
+try:
+    from PyQt5.QtWidgets import QDialog,QMessageBox,QFileDialog
+    ENV = 'PyQt5'
+except:
+    from PyQt4.QtGui import QDialog,QMessageBox,QFileDialog
+    ENV = 'PyQt4'
+# from ConfigParser import ConfigParser
 from configparser import ConfigParser
 from os.path import splitext
+
 
 class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
     
@@ -81,7 +87,10 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
         if answer == 65536:
             fp = open(self.cfgFile,'w')
         else:
-            fname = str(QFileDialog.getSaveFileName(self,'Choose a name for your new configuration file:',filter='Ini (*.ini)'))
+            if ENV == 'PyQt5':
+                fname = str(QFileDialog.getSaveFileName(self,'Choose a name for your new configuration file:',filter='Ini (*.ini)')[0])
+            else:
+                fname = str(QFileDialog.getSaveFileName(self,'Choose a name for your new configuration file:',filter='Ini (*.ini)'))
             sf = splitext(fname)
             if sf[1] != '.ini':
                 fname = sf[0]+'.ini'

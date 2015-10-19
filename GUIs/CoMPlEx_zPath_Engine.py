@@ -1,6 +1,9 @@
-from PyQt4.QtGui import QDialog
+try:
+    from PyQt5.QtWidgets import QDialog
+except:
+    from PyQt4.QtGui import QDialog
 
-from GUIs.zPath_dialog import *
+from GUIs.CoMPlEx_zPath_Dialog import Ui_zPath_dialog
 
 
 class zPath_dial(Ui_zPath_dialog,QDialog):

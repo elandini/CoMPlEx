@@ -84,7 +84,6 @@ class CMD(object):
             values = [values]
         for v in values:
             msg = msg + ':' + str(v)
-        print(msg)
         self.socket.send_string(msg)
 
 
@@ -209,7 +208,6 @@ class Skeldata(object):
 
             self.tick -= 1
             if self.tick == 0:
-                print(body)
                 self.actOnValue(data)
                 self.tick = self.notifyLength
 
@@ -240,7 +238,10 @@ class CMDREC(SkelCMDREC,threading.Thread):
 
 
 try:
-    from PyQt4.QtCore import pyqtSignal, QThread
+    try:
+        from PyQt5.QtCore import pyqtSignal, QThread
+    except:
+        from PyQt4.QtCore import pyqtSignal, QThread
 
 
     class QtDATA(Skeldata, QThread):

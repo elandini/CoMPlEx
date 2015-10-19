@@ -1,1 +1,1 @@
-pyuic4 -o GUIs\zPath_dialog.py GUIs\zPath_dialog.ui
+pyuic4 -o GUIs\CoMPlEx_zPath_Dialog.py GUIs\CoMPlEx_zPath_Dialog.ui

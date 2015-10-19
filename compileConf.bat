@@ -1,1 +1,1 @@
-pyuic4 -o GUIs\hwConfig_dialog.py GUIs\hwConfig_dialog.ui
+pyuic4 -o GUIs\CoMPlEx_hwConfig_Dialog.py GUIs\CoMPlEx_hwConfig_Dialog.ui

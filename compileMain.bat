@@ -1,2 +1,2 @@
-pyuic4 -o GUIs\CoMPlEx_GUI.py GUIs\CoMPlEx_GUI.ui
+pyuic4 -o GUIs\CoMPlEx_MainGUI.py GUIs\CoMPlEx_MainGUI.ui
 

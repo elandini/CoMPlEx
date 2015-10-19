@@ -1,14 +1,20 @@
-from GUIs.CoMPlEx_GUI import *
-from GUIs.hwConfig_deriv import *
-from GUIs.zPath_deriv import *
+from GUIs.CoMPlEx_MainGUI import Ui_CoMPlEx_GUI
+from GUIs.CoMPlEx_hwConfig_Engine import hwConfig_dial
+from GUIs.CoMPlEx_zPath_Engine import zPath_dial
 
-from threading import Thread
-
-import PyQt4.QtGui as qg
-from PyQt4 import QtCore
-from PyQt4.QtGui import QDialog, QFileDialog
-from PyQt4.QtGui import QMainWindow
-from PyQt4.QtCore import QThread
+try:
+    from PyQt5.QtWidgets import QFileDialog, QMainWindow, QSpinBox
+    from PyQt5.QtWidgets import QDoubleSpinBox, QMessageBox, QCheckBox, QLineEdit
+    from PyQt5.QtGui import QIcon, QPixmap, QColor
+    from PyQt5.QtCore import QThread
+    from PyQt5 import QtCore
+    ENV = 'PyQt5'
+except:
+    from PyQt4.QtGui import QFileDialog, QMainWindow,QIcon, QPixmap, QColor
+    from PyQt4.QtGui import QSpinBox, QDoubleSpinBox, QMessageBox, QCheckBox, QLineEdit
+    from PyQt4.QtCore import QThread
+    from PyQt4 import QtCore
+    ENV = 'PyQt4'
 import pyqtgraph as pg
 
 from os import makedirs
@@ -29,7 +35,12 @@ try:
         from libs.epz import epz as tempEpz
     epz = tempEpz
 except:
-    from libs.epz import epz
+    try:
+        import sys
+        sys.path.append('d:\\Software\\GIT\\PYTHON 3\\epz\\epz')
+        import epz.epz
+    except:
+        from libs.epz import epz
 from libs.curveLib import curve,segment
 from libs.complex2epz import Interpreter
 
@@ -38,6 +49,7 @@ try:
 except AttributeError:
     def _fromUtf8(s):
         return s
+
 
 CHUNK = 1000
 DEC = 10
@@ -54,6 +66,7 @@ DEC = 10
 
 '''
 
+
 class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     
     channels = ['Engage','Calib QPD','Calib K','FvsD curve','FvsD map','Custom curve','Custom map']
@@ -67,20 +80,20 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         super(CoMPlEx_main,self).__init__(parent)
         self.setupUi(self)
         
-        icon = qg.QIcon()
-        icon.addPixmap(qg.QPixmap(_fromUtf8("GUIs/Icons/altZ.bmp")), qg.QIcon.Normal, qg.QIcon.Off)
+        icon = QIcon()
+        icon.addPixmap(QPixmap(_fromUtf8("GUIs/Icons/altZ.bmp")), QIcon.Normal, QIcon.Off)
         self.altZSegBtn.setIcon(icon)
         
-        icon1 = qg.QIcon()
-        icon1.addPixmap(qg.QPixmap(_fromUtf8("GUIs/Icons/altF.bmp")), qg.QIcon.Normal, qg.QIcon.Off)
+        icon1 = QIcon()
+        icon1.addPixmap(QPixmap(_fromUtf8("GUIs/Icons/altF.bmp")), QIcon.Normal, QIcon.Off)
         self.altFSegBtn.setIcon(icon1)
         
-        icon2 = qg.QIcon()
-        icon2.addPixmap(qg.QPixmap(_fromUtf8("GUIs/Icons/far.bmp")), qg.QIcon.Normal, qg.QIcon.Off)
+        icon2 = QIcon()
+        icon2.addPixmap(QPixmap(_fromUtf8("GUIs/Icons/far.bmp")), QIcon.Normal, QIcon.Off)
         self.farSegBtn.setIcon(icon2)
         
-        icon3 = qg.QIcon()
-        icon3.addPixmap(qg.QPixmap(_fromUtf8("GUIs/Icons/near.bmp")), qg.QIcon.Normal, qg.QIcon.Off)
+        icon3 = QIcon()
+        icon3.addPixmap(QPixmap(_fromUtf8("GUIs/Icons/near.bmp")), QIcon.Normal, QIcon.Off)
         self.nearSegBtn.setIcon(icon3)
         
         self.actionNdockDict = {self.action_Motors:[self.motorsDock,'isChecked','setVisible','visibilityChanged'],
@@ -91,7 +104,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                                 self.settingsDock:[self.action_Settings,'isVisible','setChecked','changed'],
                                 self.remoteDock:[self.action_Remote,'isVisible','setChecked','changed'],
                                 self.qpdNpiezoDock:[self.action_QPD_and_piezo,'isVisible','setChecked','changed']}
-        
+
+        prova = self.centralPlot.plotItem.getAxis('left')
+
         self.custFvsdSegs = []
         self.zTrigBase = 0.0
         self.fTrigBase = 0.0
@@ -99,14 +114,17 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.programs = {'Engage':self.remoteEngage,'Calib QPD':self.remoteCalibQPD,'Calib K':self.calibK,
                          'FvsD curve':self.fvsd,'FvsD map':self.fvsdMap,'Custom curve':self.custom,'Custom map':self.customMap}
-        
-        self.cfgFile = str(QFileDialog.getOpenFileName(self,'Select a configuration file',filter='Ini (*.ini)'))
+
+        if ENV == 'PyQt5':
+            self.cfgFile = str(QFileDialog.getOpenFileName(self,'Select a configuration file',filter='Ini (*.ini)')[0])
+        else:
+            self.cfgFile = str(QFileDialog.getOpenFileName(self,'Select a configuration file',filter='Ini (*.ini)'))
         if self.cfgFile == '':
             self.cfgFile = 'config/defaultCfg.ini'
         self.channelCmbBox.clear()
         self.channelMng('Engage')
-        self.laserSpot = self.alignPlot.plot([0],[0],pen = None, symbol = 'o', symbolPen = 'r', symbolSize = 50, symbolBrush = qg.QColor(0,0,0,128))
-        self.alignPlot.plot([0],[0],pen = None, symbol = 'o', symbolPen = {'color':'b','width':2}, symbolSize = 50, symbolBrush = qg.QColor(255,255,255,0))
+        self.laserSpot = self.alignPlot.plot([0],[0],pen = None, symbol = 'o', symbolPen = 'r', symbolSize = 50, symbolBrush = QColor(0,0,0,128))
+        self.alignPlot.plot([0],[0],pen = None, symbol = 'o', symbolPen = {'color':'b','width':2}, symbolSize = 50, symbolBrush = QColor(255,255,255,0))
         self.alignPlot.plotItem.showAxis('top',True)
         self.alignPlot.plotItem.showAxis('right',True)
         self.alignPlot.plotItem.showGrid(True,True,1)
@@ -123,7 +141,14 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.expInProgress = False
         self.engaging = False
         self.engaged = False
-        
+
+        self.speedGroups = {self.appSpeedNumDbl:[True,self.startZNumDbl,self.endZNumDbl],
+                            self.retrSpeedNumDbl:[True,self.startZNumDbl,self.endZNumDbl],
+                            self.speedcNumDbl:[True,self.endZcNumDbl,None],
+                            self.startZNumDbl:[False,self.startZNumDbl,self.endZNumDbl,self.appSpeedNumDbl,self.retrSpeedNumDbl],
+                            self.endZNumDbl:[False,self.startZNumDbl,self.endZNumDbl,self.appSpeedNumDbl,self.retrSpeedNumDbl],
+                            self.endZcNumDbl:[False,self.endZcNumDbl,False,self.speedcNumDbl]}
+
         self.applyConfig()
         self.epzConnect()
         self.epzConnections()
@@ -147,8 +172,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     
     def getParamsDict(self):
         
-        baseDict = {qg.QSpinBox:['NUM','.value()','.setValue(',[]],qg.QDoubleSpinBox:['DBL','.value()','.setValue(',[]],
-                    qg.QLineEdit:['LINE','.text()','.setText(',[]],qg.QCheckBox:['CKBOX','.isChecked()','.setChecked(',[]]}
+        baseDict = {QSpinBox:['NUM','.value()','.setValue(',[]],QDoubleSpinBox:['DBL','.value()','.setValue(',[]],
+                    QLineEdit:['LINE','.text()','.setText(',[]],QCheckBox:['CKBOX','.isChecked()','.setChecked(',[]]}
         
         for d in dir(self):
             dObj = getattr(self, d)
@@ -167,12 +192,20 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     
     def applyConfig(self):
         
-        if self.cfgFile != self.hwDial.cfgFile:
-            self.cfgFile = self.hwDial.cfgFile
+        try:
+            if self.cfgFile != self.hwDial.cfgFile:
+                self.cfgFile = self.hwDial.cfgFile
+        except:
+            pass
         
         parser = ConfigParser()
+        print(self.cfgFile)
         parser.read(self.cfgFile)
-        
+
+        self.privates = {}
+        for  o in parser.options('PRIVATE'):
+            self.privates[o] = parser.get('PRIVATE',o)
+
         self.sumThr = float(parser.get('OTHER','sumthr'))
         self.deflSign = (-1)**(int(parser.get('OTHER','deflsign')))
         self.iGainNumDbl.setMaximum(float(parser.get('OTHER','imax')))
@@ -201,7 +234,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.zVtoNm = lambda x: ((x-zvm)/(zvM-zvm)*(zM-zm)+zm)
         self.zNmtoV = lambda x: ((x-zm)/(zM-zm)*(zvM-zvm)+zvm)
-        self.zNmtoVrel = lambda x: (x/(zM-zm)*(zvM-zvm))
+        self.zNmtoVRel = lambda x: (x/(zM-zm)*(zvM-zvm))
+        self.zVtoNmRel = lambda x: (x/(zvM-zvm)*(zM-zm))
         
         self.toStartSpeed = float(parser.get('PIEZO','tostartspeed'))
         
@@ -226,6 +260,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.setPtNumDbl.setMinimum(self.deflVmin)
         self.endFcNumDbl.setMaximum(self.deflVmax)
         self.endFcNumDbl.setMinimum(0)
+
+        self.systemDict = {'zMaxNm':zM,
+                           'zMinNm':zm,
+                           'zMaxV':zvM,
+                           'zMinV':zvm}
 
         self.deflectionToV = self.deflSign/(self.kNumDbl.value()*self.kdNumDbl.value())
 
@@ -301,7 +340,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         paramsParser = ConfigParser()
         paramsParser.read(parFileName)
         if paramsParser.get('MISC', 'afm') != self.cfgFile:
-            warning = qg.QMessageBox(self)
+            warning = QMessageBox(self)
             warning.setText('You tried to load parameters that have been saved for another AFM\n'+
                             'Please choose a parameter file for you current AFM')
             warning.exec_()
@@ -425,36 +464,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             self.laserSpot.setData([newVal],self.laserSpot.yData)
         else:
             self.sumProg.setValue(newVal)
-            self.laserSpot.setSymbolBrush(qg.QColor(int(25.5*newVal),0,0,128))
-        
-        
-    def updateDefl(self,v):
-
-        deflValue = np.array(v[1])
-        # CANCELLA NELLA VERSIONE DEFINITIVA
-        deflValue *=10
-        # CANCELLA NELLA VERSIONE DEFINITIVA
-        self.deflNumDbl.setValue(deflValue)
+            self.laserSpot.setSymbolBrush(QColor(int(25.5*newVal),0,0,128))
 
 
-    def updateDefl(self,v):
-
-        deflValue = np.array(v[1])
-        sumValue = np.max(np.array(v[2]))
-        torsValue = np.max(np.array(v[1]))
-
-        # CANCELLA NELLA VERSIONE DEFINITIVA
-        deflValue *=10
-        sumValue *=10
-        torsValue *=10
-        # CANCELLA NELLA VERSIONE DEFINITIVA
-
-        self.deflNumDbl.setValue(deflValue)
-        self.torsNumDbl.setValue(torsValue)
-        self.sumNumDbl.setValue(sumValue)
-
-
-        
     def sendZ(self,v):
 
         zValue = self.zVtoNm(v)/1000.0
@@ -752,6 +764,88 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
 
     # Curve management functions
+
+
+    def manageSpeedUpdate(self):
+
+        culprit = self.sender()
+
+        speedOrNot = self.speedGroups[culprit][0]
+        print(speedOrNot)
+
+        za = self.speedGroups[culprit][1].value()
+        try:
+            zb = self.speedGroups[culprit][2].value()
+        except:
+            zb = 0.0
+
+        if speedOrNot:
+            speed = culprit.value()
+            stopMe = (za == 0 and zb == 0) or speed == 0
+            if stopMe:
+                return None
+            rs,t6t = self.speedToDacStep(speed,za,zb)
+            print('rs = {0}, t6t = {1}'.format(rs,t6t))
+            realSpeed = self.fromDacToSpeed(za,zb,rs,t6t)
+            culprit.valueChanged.disconnect()
+            culprit.setValue(realSpeed)
+            culprit.valueChanged.connect(self.manageSpeedUpdate)
+
+        else:
+            count = 2
+            for s in  self.speedGroups[culprit][3:]:
+                speed = s.value()
+                stopMe = (za == 0 and zb == 0) or speed == 0
+                if stopMe:
+                    count -= 1
+                    if count == 0:
+                        return None
+                    continue
+                rs,t6t = self.speedToDacStep(speed,za,zb)
+                print('rs = {0}, t6t = {1}'.format(rs,t6t))
+                realSpeed = self.fromDacToSpeed(za,zb,rs,t6t)
+                s.valueChanged.disconnect()
+                s.setValue(realSpeed)
+                s.valueChanged.connect(self.manageSpeedUpdate)
+
+
+    def speedToDacStep(self, speed, za, zb):
+
+        totVrange = abs(self.systemDict['zMaxV']-self.systemDict['zMinV'])
+        vrange = self.zNmtoVRel(abs(za-zb))
+        totSteps = 2**int(self.privates['dacbits'])
+        t6 = float(self.privates['t6'])
+        speedV = self.zNmtoVRel(speed)
+        dt = vrange/speedV
+        vMinStep = totVrange/totSteps
+        nSteps = dt/t6
+        vStep = vrange/nSteps
+        vStepDacEquiv = vStep/vMinStep
+        if vStepDacEquiv > 0.5:
+            realVStepDacEquiv = round(vStepDacEquiv)
+            numT6Ticks4DacStep = 1
+        else:
+            realVStepDacEquiv = 1
+            numT6Ticks4DacStep = round(1/vStepDacEquiv)
+
+        return realVStepDacEquiv,numT6Ticks4DacStep
+
+
+    def fromDacToSpeed(self, za, zb,realVStepDacEquiv,numT6Ticks4DacStep):
+
+        totVrange = abs(self.systemDict['zMaxV']-self.systemDict['zMinV'])
+        vrange = self.zNmtoVRel(abs(za-zb))
+        totSteps = 2**int(self.privates['dacbits'])
+        t6 = float(self.privates['t6'])
+        vMinStep = totVrange/totSteps
+
+        realVStep = realVStepDacEquiv*vMinStep
+        realNSteps = int(vrange/realVStep)
+        realDt = realNSteps*t6
+        realSpeedV = vrange/realDt/numT6Ticks4DacStep
+
+        return self.zVtoNmRel(realSpeedV)
+
     
     def createSpiral(self,delta1,delta2,pointsNr):
         
@@ -1094,21 +1188,28 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.segCmbBox.currentIndexChanged.connect(self.showSeg)
         self.kdNumDbl.valueChanged.connect(self.changeRefDefl)
         self.kNumDbl.valueChanged.connect(self.changeRefDefl)
+        self.appSpeedNumDbl.valueChanged.connect(self.manageSpeedUpdate)
+        self.retrSpeedNumDbl.valueChanged.connect(self.manageSpeedUpdate)
+        self.speedcNumDbl.valueChanged.connect(self.manageSpeedUpdate)
+        self.endZcNumDbl.valueChanged.connect(self.manageSpeedUpdate)
+        self.endZNumDbl.valueChanged.connect(self.manageSpeedUpdate)
+        self.startZNumDbl.valueChanged.connect(self.manageSpeedUpdate)
+
 
 
     def closeEvent(self, event):
         print(self.sender())
-        reply = QtGui.QMessageBox.question(self, 'Message',
-            "Do you really want to close CoMPlEx?", QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+        reply = QMessageBox.question(self, 'Message',
+            "Do you really want to close CoMPlEx?", QMessageBox.Yes, QMessageBox.No)
 
-        if reply == QtGui.QMessageBox.Yes:
+        if reply == QMessageBox.Yes:
             self.curveIntpr.stopDev()
             self.monitIntpr.stopDev()
 
-            reply = QtGui.QMessageBox.question(self, 'Message',
+            reply = QMessageBox.question(self, 'Message',
                                                "Do you want to kill the devices (If you say yes, you'll have to turn the towers off and then on before using CoMPlEx again)?",
-                                               QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-            if reply == QtGui.QMessageBox.Yes:
+                                               QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
                 self.curveIntpr.killDev()
                 self.monitIntpr.killDev()
                 self.xyCmd.send('K')

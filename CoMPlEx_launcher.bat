@@ -1,1 +1,1 @@
-python3 CoMPlEx_launcher.py
+python3 CoMPlEx.py
