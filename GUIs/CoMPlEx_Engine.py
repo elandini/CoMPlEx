@@ -1,21 +1,23 @@
-from GUIs.CoMPlEx_MainGUI import Ui_CoMPlEx_GUI
-from GUIs.CoMPlEx_hwConfig_Engine import hwConfig_dial
-from GUIs.CoMPlEx_zPath_Engine import zPath_dial
-
 try:
     from PyQt5.QtWidgets import QFileDialog, QMainWindow, QSpinBox
     from PyQt5.QtWidgets import QDoubleSpinBox, QMessageBox, QCheckBox, QLineEdit
     from PyQt5.QtGui import QIcon, QPixmap, QColor
     from PyQt5.QtCore import QThread
     from PyQt5 import QtCore
+    import pyqtgraph as pg
+
     ENV = 'PyQt5'
 except:
     from PyQt4.QtGui import QFileDialog, QMainWindow,QIcon, QPixmap, QColor
     from PyQt4.QtGui import QSpinBox, QDoubleSpinBox, QMessageBox, QCheckBox, QLineEdit
     from PyQt4.QtCore import QThread
     from PyQt4 import QtCore
+    import pyqtgraph as pg
     ENV = 'PyQt4'
-import pyqtgraph as pg
+
+from GUIs.CoMPlEx_MainGUI import Ui_CoMPlEx_GUI
+from GUIs.CoMPlEx_hwConfig_Engine import hwConfig_dial
+from GUIs.CoMPlEx_zPath_Engine import zPath_dial
 
 from os import makedirs
 from subprocess import Popen
@@ -199,7 +201,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             pass
         
         parser = ConfigParser()
-        print(self.cfgFile)
         parser.read(self.cfgFile)
 
         self.privates = {}
@@ -251,6 +252,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.calibStimZOffsetNumDbl.setMinimum(zm)
         self.nearFar = (-1)**(int(parser.get('PIEZO','nearfar')))
         self.zPiezoProg.setInvertedAppearance(self.nearFar<0)
+        maxV = float(parser.get('PIEZO','maxspeed'))
+        self.appSpeedNumDbl.setMaximum(maxV)
+        self.retrSpeedNumDbl.setMaximum(maxV)
+        self.speedcNumDbl.setMaximum(maxV)
 
         self.deflVmax = float(parser.get('OTHER','dvmax'))
         self.deflVmin = float(parser.get('OTHER','dvmin'))
@@ -681,8 +686,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                     self.yMinusBtn: ['M',[0,-1*self.yStepNumNum.value()]],
                     self.goCenterBtn: ['GZ',[]],
                     self.resetXYBtn: ['SZ',[]]}
-        print(cmdDict[culprit][0])
-        print(cmdDict[culprit][1])
         self.xyCmd.send(cmdDict[culprit][0],cmdDict[culprit][1])
         
         
@@ -710,7 +713,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def engage(self,v):
 
         self.ramblingPlotManager(v)
-        print(np.mean(np.array(v[2])/self.deflectionToV))
 
         if np.mean(np.array(v[2])/self.deflectionToV)>=self.setPtNumDbl.value():
             self.engaged = True
@@ -771,7 +773,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         culprit = self.sender()
 
         speedOrNot = self.speedGroups[culprit][0]
-        print(speedOrNot)
 
         za = self.speedGroups[culprit][1].value()
         try:
@@ -785,7 +786,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             if stopMe:
                 return None
             rs,t6t = self.speedToDacStep(speed,za,zb)
-            print('rs = {0}, t6t = {1}'.format(rs,t6t))
             realSpeed = self.fromDacToSpeed(za,zb,rs,t6t)
             culprit.valueChanged.disconnect()
             culprit.setValue(realSpeed)
@@ -802,7 +802,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                         return None
                     continue
                 rs,t6t = self.speedToDacStep(speed,za,zb)
-                print('rs = {0}, t6t = {1}'.format(rs,t6t))
                 realSpeed = self.fromDacToSpeed(za,zb,rs,t6t)
                 s.valueChanged.disconnect()
                 s.setValue(realSpeed)
@@ -945,17 +944,21 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
         if segment['type'] == 'Fconst':
             self.curveIntpr.setSetPoint(self.fTrigBase*self.deflectionToV)
+        elif segment['type'] != 'Fconst' and segment['type'] == 'Zconst':
+            rds,t6t = self.speedToDacStep(segment['speed'])
+            self.curveIntpr.setZramp(rds,t6t)
+            self.curveIntpr.setZrampSign(int(zDeltaSign<0))
         
         self.curveIntpr.startSegment(segment['type'])
     
         
     def segmentDone(self,v):
         if not v:
+            tempQueue = self.curveData.queue[0]
+            self.currZ,self.currF = self.emptyDataQueue(tempQueue)
+            self.zTrigBase = np.mean(self.currZ[-20:])
+            self.fTrigBase = np.mean(self.currF[-20:])
             if self.currentSeg > 0:
-                tempQueue = self.curveData.queue[0]
-                self.currZ,self.currF = self.emptyDataQueue(tempQueue)
-                self.zTrigBase = np.mean(self.currZ[-20:])
-                self.fTrigBase = np.mean(self.currF[-20:])
                 self.currentSaver.waitingInLineZ.append(self.currZ)
                 self.currentSaver.waitingInLineF.append(self.currF)
                 self.currentSaver.segParams.append(self.segmentsToDo[self.currentSeg])
@@ -980,7 +983,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def cycleExp(self):
         if self.currentSeg > 0:
-            #print(self.plottedSegs)
             self.plottedSegs[self.currentSeg-1].setData(self.currZ[::],self.currF[::])
         
         self.currentSeg += 1
@@ -1198,7 +1200,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
 
     def closeEvent(self, event):
-        print(self.sender())
         reply = QMessageBox.question(self, 'Message',
             "Do you really want to close CoMPlEx?", QMessageBox.Yes, QMessageBox.No)
 
@@ -1238,11 +1239,7 @@ class SaveThread(QThread):
     
     def run(self):
 
-        print(self.curves)
         while self.go or len(self.waitingInLineZ)>0:
-            # print('going')
-            # print(len(self.waitingInLineZ))
-            # print('waiting in line')
             if len(self.waitingInLineZ)>0:
                 newz = self.waitingInLineZ[0]
                 newf = self.waitingInLineF[0]

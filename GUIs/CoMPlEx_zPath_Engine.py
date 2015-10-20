@@ -1,7 +1,9 @@
 try:
     from PyQt5.QtWidgets import QDialog
+    import pyqtgraph as pg
 except:
     from PyQt4.QtGui import QDialog
+
 
 from GUIs.CoMPlEx_zPath_Dialog import Ui_zPath_dialog
 

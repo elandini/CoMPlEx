@@ -23,6 +23,7 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
             self.cfgFile = cfgFile
         self.parser.read(self.cfgFile)
         self.fillControls()
+        self.maxSpeedNumDbl.valueChanged.connect(self.toStartSpeedNumDbl.setMaximum)
     
     
     def fillControls(self):
@@ -40,6 +41,7 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
         self.maxPiezoExtNumDbl.setValue(float(self.parser.get('PIEZO', 'zmax')))
         self.minPiezoExtNumDbl.setValue(float(self.parser.get('PIEZO', 'zmin')))
         self.farNearCmbBox.setCurrentIndex(int(self.parser.get('PIEZO','nearfar')))
+        self.maxSpeedNumDbl.setValue(float(self.parser.get('PIEZO','maxspeed')))
         self.toStartSpeedNumDbl.setValue(float(self.parser.get('PIEZO','tostartspeed')))
         
         self.deflSignCmbBox.setCurrentIndex(int(self.parser.get('OTHER','deflsign')))
@@ -67,6 +69,7 @@ class hwConfig_dial(Ui_hwConfig_dialog,QDialog):
         self.parser.set('PIEZO', 'zmax',str(self.maxPiezoExtNumDbl.value()))
         self.parser.set('PIEZO', 'zmin',str(self.minPiezoExtNumDbl.value()))
         self.parser.set('PIEZO','nearfar',str(self.farNearCmbBox.currentIndex()))
+        self.parser.set('PIEZO', 'maxspeed',str(self.maxSpeedNumDbl.value()))
         self.parser.set('PIEZO', 'tostartspeed',str(self.toStartSpeedNumDbl.value()))
         
         self.parser.set('OTHER','deflsign',str(self.deflSignCmbBox.currentIndex()))

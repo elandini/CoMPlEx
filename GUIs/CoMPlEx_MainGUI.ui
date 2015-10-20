@@ -1365,7 +1365,11 @@
           </widget>
          </item>
          <item row="2" column="1">
-          <widget class="QDoubleSpinBox" name="endZNumDbl"/>
+          <widget class="QDoubleSpinBox" name="endZNumDbl">
+           <property name="keyboardTracking">
+            <bool>false</bool>
+           </property>
+          </widget>
          </item>
          <item row="5" column="1">
           <widget class="QDoubleSpinBox" name="holdTimeNumDbl"/>
@@ -1447,7 +1451,11 @@
           </widget>
          </item>
          <item row="1" column="1">
-          <widget class="QDoubleSpinBox" name="startZNumDbl"/>
+          <widget class="QDoubleSpinBox" name="startZNumDbl">
+           <property name="keyboardTracking">
+            <bool>false</bool>
+           </property>
+          </widget>
          </item>
          <item row="3" column="0">
           <widget class="QLabel" name="label_25">
@@ -1464,7 +1472,11 @@
           </widget>
          </item>
          <item row="3" column="1">
-          <widget class="QDoubleSpinBox" name="appSpeedNumDbl"/>
+          <widget class="QDoubleSpinBox" name="appSpeedNumDbl">
+           <property name="keyboardTracking">
+            <bool>false</bool>
+           </property>
+          </widget>
          </item>
          <item row="8" column="0">
           <widget class="QLabel" name="label_28">
@@ -1481,7 +1493,11 @@
           </widget>
          </item>
          <item row="4" column="1">
-          <widget class="QDoubleSpinBox" name="retrSpeedNumDbl"/>
+          <widget class="QDoubleSpinBox" name="retrSpeedNumDbl">
+           <property name="keyboardTracking">
+            <bool>false</bool>
+           </property>
+          </widget>
          </item>
          <item row="6" column="0" colspan="2">
           <widget class="Line" name="line_8">
@@ -1587,7 +1603,11 @@
           </widget>
          </item>
          <item row="3" column="1">
-          <widget class="QDoubleSpinBox" name="endZcNumDbl"/>
+          <widget class="QDoubleSpinBox" name="endZcNumDbl">
+           <property name="keyboardTracking">
+            <bool>false</bool>
+           </property>
+          </widget>
          </item>
          <item row="1" column="0" colspan="4">
           <widget class="Line" name="line_9">
@@ -1600,6 +1620,9 @@
           <widget class="QDoubleSpinBox" name="speedcNumDbl">
            <property name="enabled">
             <bool>true</bool>
+           </property>
+           <property name="keyboardTracking">
+            <bool>false</bool>
            </property>
           </widget>
          </item>

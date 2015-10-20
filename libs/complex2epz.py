@@ -33,12 +33,14 @@ except:
 
 
 '''
-SET_SPEED:D
+SET_DACSTEP:D
+SET_NUMT6TRIG:T
 SET_TIMETRIG:M
-SET_Z:B
+SET_DAC_SOFT:B
+SET_DAC_HARD:U
 SET_TRIGGERS:N
 SET_ZTRIG:L
-SET_FTRIG:k
+SET_FTRIG:K
 SET_TIM8PER:8
 SET_SETPOINT:P
 SET_PGAIN:Q
@@ -48,12 +50,12 @@ START_MODSAFE:O
 SET_DACMODE:F
 SET_TESTPIN:H
 INIT_SPI2:I
-SET_SPEEDSIGN:C
+SET_RAMPSIGN:C
 SET_USECIRCBUFF:G
 SET_MODEDBG:E
-SET_ZTO0:J
-SET_Z24:A
-SWITCH_SPI:g
+SET_DACTO0:J
+SET_DAC_2OR4:A
+SWITCH_SPI2:g
 KILL:k
 '''
 
@@ -70,13 +72,26 @@ class Interpreter(object):
     ## Start the SPI communication
     def startDev(self):
 
-        self.cmd.send('SWITCH_SPI',1)
+        self.cmd.send('SWITCH_SPI2',1)
 
 
     ## Close the communication between the PIC and the raspberry PI
     def stopDev(self):
 
-        self.cmd.send('SWITCH_SPI',0)
+        self.cmd.send('SWITCH_SPI2',0)
+
+
+    ## Set the unipolar DAC mode
+    def goUnipolar(self):
+
+        self.cmd.send('SET_DACMODE',0)
+
+
+    ## Set the bipolar DAC mode
+    def goBipolar(self):
+
+        self.cmd.send('SET_DACMODE',1)
+
 
     ## Kill the epizmq process on the target raspberry PI
     def killDev(self):
@@ -92,17 +107,19 @@ class Interpreter(object):
 
 
     ## Set the speed at which the piezo has to move
-    # @param value The wanted speed in Volt/s
-    def setZspeed(self,value):
+    # @param dacStep The number of steps to perform every 'T6' microseconds
+    # @param t6TickNum The number of 'T6'you have to wait before tacking another step
+    def setZramp(self,dacStep,t6TicksTum):
 
-        self.cmd.send('SET_SPEED',value)
+        self.cmd.send('SET_DACSTEP',dacStep)
+        self.cmd.send('SET_NUMT6TRIG',t6TicksTum)
 
 
     ## Set the speed sign
     # @param value The wanted speed sign (0 = positive, 1 = negative)
-    def setZspeedSign(self,value):
+    def setZrampSign(self,value):
 
-        self.cmd.send('SET_SPEEDSIGN',value)
+        self.cmd.send('SET_RAMPSIGN',value)
 
 
     ## Set the PI feedback integral gain
