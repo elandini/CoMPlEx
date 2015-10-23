@@ -81,6 +81,18 @@ class Interpreter(object):
         self.cmd.send('SWITCH_SPI2',0)
 
 
+    ## Turns the DSPIC circula buffer on
+    def circulaBufferOn(self):
+
+        self.cmd.send('SET_USECIRCBUFF',1)
+
+
+    ## Turns the DSPIC circula buffer off
+    def circulaBufferOff(self):
+
+        self.cmd.send('SET_USECIRCBUFF',0)
+
+
     ## Set the unipolar DAC mode
     def goUnipolar(self):
 

@@ -14,7 +14,7 @@ except:
     from PyQt4 import QtCore
     import pyqtgraph as pg
     ENV = 'PyQt4'
-
+print(ENV)
 from GUIs.CoMPlEx_MainGUI import Ui_CoMPlEx_GUI
 from GUIs.CoMPlEx_hwConfig_Engine import hwConfig_dial
 from GUIs.CoMPlEx_zPath_Engine import zPath_dial
@@ -36,13 +36,10 @@ try:
     if 'tag' not in keys:
         from libs.epz import epz as tempEpz
     epz = tempEpz
+    print('bad')
 except:
-    try:
-        import sys
-        sys.path.append('d:\\Software\\GIT\\PYTHON 3\\epz\\epz')
-        import epz.epz
-    except:
-        from libs.epz import epz
+    from libs.epz import epz
+
 from libs.curveLib import curve,segment
 from libs.complex2epz import Interpreter
 
@@ -55,6 +52,7 @@ except AttributeError:
 
 CHUNK = 1000
 DEC = 10
+NOTLEN = 100
 
 '''
 1 #0033CC
@@ -298,7 +296,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveData.decimate = DEC
         self.monitData.chunk = CHUNK
         self.monitData.decimate = DEC
-        self.monitData.notifyLength = 50
+        self.monitData.notifyLength = NOTLEN
 
 
     def startEpzs(self):
@@ -306,6 +304,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         sleep(0.2)
         self.curveData.start()
         self.monitData.start()
+        self.curveIntpr.circulaBufferOn()
+        self.monitIntpr.circulaBufferOn()
         self.curveIntpr.startDev()
         self.monitIntpr.startDev()
         self.xyRes.start()
@@ -474,6 +474,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
     def sendZ(self,v):
 
+        print(v)
         zValue = self.zVtoNm(v)/1000.0
         self.zPiezoNumDbl.setValue(zValue)
         
@@ -1204,6 +1205,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             "Do you really want to close CoMPlEx?", QMessageBox.Yes, QMessageBox.No)
 
         if reply == QMessageBox.Yes:
+            self.curveIntpr.circulaBufferOff()
+            self.monitIntpr.circulaBufferOff()
             self.curveIntpr.stopDev()
             self.monitIntpr.stopDev()
 
