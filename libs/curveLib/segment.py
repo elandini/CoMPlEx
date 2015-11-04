@@ -14,7 +14,7 @@ class segment(mvobject.mvobject):
         defaults = {'direction':'far','speed':1.0,'k':1.0,'type':'Vconst'}
         self.parseConfig(defaults,'Segment')
         if len(x)==0:
-            return False
+            return
          
         if x[0]>x[-1]:
             self.direction='near'

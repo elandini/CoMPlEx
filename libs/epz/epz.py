@@ -80,6 +80,7 @@ class CMD(object):
 
     def send(self, cmd, values=[]):
         msg = '{0}:{2}:{1}'.format(self.device, cmd, self.tag)
+
         if type(values) != list :
             values = [values]
         for v in values:
@@ -88,12 +89,14 @@ class CMD(object):
 
 
 class SkelCMDREC(object):
-    def __init__(self, environment,device = None,tag='RES'):
+    def __init__(self, environment,device = None,tag='RES',oneshot = False):
         self.context = environment.context
         self.subport = environment.subport
         self.epserver = environment.epserver
         self.tag = tag
         self.listen = True
+        self.setDone = False
+        self.oneShot = oneshot
         if device is None:
             self.device = environment.device
         else:
@@ -105,15 +108,36 @@ class SkelCMDREC(object):
         self.head = "{0}:{1}:".format(self.device,self.tag)
         self.socket.setsockopt_string(zmq.SUBSCRIBE,self.head)
         self.socket.connect("tcp://{0}:{1}".format(self.epserver, self.subport))
+
+        self.setDone = True
         
         
     def react(self,resp):
         pass
-        
+
+
+    def oneShotRead(self):
+
+        if not self.setDone:
+            self.setZmq()
+
+        body = self.socket.recv_string()
+        resp = body.strip(self.head).split(':')[0]
+
+        return resp
+
         
     def run(self):
-        self.setZmq()
-        
+        if not self.setDone:
+            self.setZmq()
+
+        if self.oneShot:
+            body = self.socket.recv_string()
+            resp = body.strip(self.head).split(':')[0]
+            self.react(resp)
+
+            return
+
         while self.listen:
             body = self.socket.recv_string()
             resp = body.strip(self.head)
@@ -231,10 +255,10 @@ class DATA(Skeldata, threading.Thread):
 
 class CMDREC(SkelCMDREC,threading.Thread):
     
-    def __init__(self,environment,device = None,tag = 'RES'):
+    def __init__(self,environment,device = None,tag = 'RES',oneShot = False):
         
         threading.Thread.__init__(self)
-        SkelCMDREC.__init__(self, environment,device,tag)
+        SkelCMDREC.__init__(self, environment,device,tag,oneShot)
 
 
 try:
@@ -273,16 +297,15 @@ try:
             
     class QtCMDREC(SkelCMDREC,QThread):
         
-        respReceived = pyqtSignal(str,name='respReceived')
+        respReceived = pyqtSignal(str, name='respReceived')
         
-        def __init__(self,environment,device = None,tag = 'RES'):
+        def __init__(self,environment,device = None,tag = 'RES',oneshot=False):
             
             QThread.__init__(self)
-            CMDREC.__init__(self, environment,device,tag)
+            SkelCMDREC.__init__(self, environment,device,tag,oneshot)
             
         
         def react(self,resp):
-            
             self.respReceived.emit(resp)
 
 

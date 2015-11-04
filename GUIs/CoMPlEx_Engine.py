@@ -52,7 +52,7 @@ except AttributeError:
 
 CHUNK = 1000
 DEC = 10
-NOTLEN = 100
+NOTLEN = 50
 
 '''
 1 #0033CC
@@ -248,7 +248,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.startZcNumDbl.setMinimum(zm)
         self.calibStimZOffsetNumDbl.setMaximum(zM)
         self.calibStimZOffsetNumDbl.setMinimum(zm)
-        self.nearFar = (-1)**(int(parser.get('PIEZO','nearfar')))
+        self.nearFar = (-1)**(int(parser.get('PIEZO','nearfar')=='0'))
         self.zPiezoProg.setInvertedAppearance(self.nearFar<0)
         maxV = float(parser.get('PIEZO','maxspeed'))
         self.appSpeedNumDbl.setMaximum(maxV)
@@ -312,8 +312,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
     
     def saveParams(self):
-        
-        parFileName = str(QFileDialog.getSaveFileName(self,'Choose a name for you parameters file',filter='Parameters Files (*.par)'))
+
+        if ENV == 'PyQt5':
+            parFileName = str(QFileDialog.getSaveFileName(self,'Choose a name for you parameters file',filter='Parameters Files (*.par)')[0])
+        else:
+            parFileName = str(QFileDialog.getSaveFileName(self,'Choose a name for you parameters file',filter='Parameters Files (*.par)'))
         if parFileName == '':
             return None
         splitName = splitext(parFileName)
@@ -337,7 +340,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     
     def loadParams(self):
         
-        parFileName = str(QFileDialog.getOpenFileName(self,'Choose a parameters file',filter='Parameters Files (*.par)'))
+        if ENV == 'PyQt5':
+            parFileName = str(QFileDialog.getOpenFileName(self,'Choose a parameter file:',filter='Par (*.par)')[0])
+        else:
+            parFileName = str(QFileDialog.getOpenFileName(self,'Choose a parameter file:',filter='Par (*.par)'))
         if parFileName == '':
             return None
         lDict = self.getParamsDict()
@@ -474,7 +480,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
     def sendZ(self,v):
 
-        print(v)
+        #z = np.array(v[1])
+        #zValue = self.zVtoNm(np.mean(z))/1000.0
         zValue = self.zVtoNm(v)/1000.0
         self.zPiezoNumDbl.setValue(zValue)
         
@@ -489,8 +496,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         stdSegments = []
         types = ['Zconst','Fconst','Vconst','Vconst']
         seg = {}
-        
-        seg['zLim'] = self.endZNumDbl.value()
+
+        print('end: {0}, start: {1}'.format(self.endZNumDbl.value(),self.startZNumDbl.value()))
+        seg['zLim'] = abs(self.endZNumDbl.value()-self.startZNumDbl.value())
         seg['fLim'] = self.maxFNumDbl.value()
         seg['speed'] = self.appSpeedNumDbl.value()
         seg['direction'] = 3
@@ -512,7 +520,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         seg = {}
         
-        seg['zLim'] = self.startZNumDbl.value()
+        seg['zLim'] = abs(self.startZNumDbl.value()-self.endZNumDbl.value())
         seg['fLim'] = self.maxFNumDbl.minimum()
         seg['speed'] = self.retrSpeedNumDbl.value()
         seg['direction'] = 2
@@ -702,19 +710,23 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveIntpr.setP(self.pGainNumDbl.value())
         self.curveIntpr.setI(self.iGainNumDbl.value())
         self.curveIntpr.setSetPoint(self.setPtNumDbl.value()*self.deflectionToV)
-
+        self.channelMng('FvsD curve')
+        '''
         self.ramblingPlot = self.centralPlot.plot([],[],pen = self.ramblingPen)
 
         self.curveIntpr.setTriggersSwitch(0,0,0)
         self.curveIntpr.feedbackOn()
         self.engaging = True
         self.curveData.chunkReceived.connect(self.engage)
+        '''
 
 
     def engage(self,v):
 
-        self.ramblingPlotManager(v)
+        pass
 
+        '''
+        self.ramblingPlotManager(v)
         if np.mean(np.array(v[2])/self.deflectionToV)>=self.setPtNumDbl.value():
             self.engaged = True
             self.rdsLine.setText('Engaged')
@@ -725,6 +737,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             self.rdsLine.setText('Engaging...')
             self.channelMng('Calib QPD','-')
             self.channelMng('Calib K','-')
+
+        '''
 
         
     def remoteCalibQPD(self):
@@ -872,7 +886,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.currentCurve = curve.curve()
 
-        self.zTrigBase = 0
+        self.zTrigBase = self.zPiezoNumDbl.value()*1000
         self.fTrigBase = 0
         
         self.curveDir = self.dirLine.text() if self.dirLine.text() != '' else self.curveDir
@@ -899,6 +913,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.plottedSegs,self.ramblingPlot = self.initCurvePlot(len(self.segmentsToDo)-1)
         self.curveData.chunkReceived.connect(self.ramblingPlotManager)
         self.xyRes.respReceived.connect(self.doSegment)
+
+        self.doSegment()
         #self.xyCmd.send('GZ',[])
     
     
@@ -928,14 +944,19 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def doSegment(self):
         # send segment parameters
         segment = self.segmentsToDo[self.currentSeg]
-        directionSign = (-1)**(int(segment['direction'] == 'far'))
+        directionSign = (-1)**(int(segment['direction'] == 3))
+        #print('Current Segment: {0}'.format(segment))
+        #print('Direction sign: {0}, NearFar: {1}'.format(directionSign,self.nearFar))
         zDeltaSign = self.nearFar*directionSign
+        print('Z base: {0}'.format(self.zTrigBase))
+        print('Z lim: {0}'.format(segment['zLim']))
+        print('Trigger in nm: {0}'.format(self.zTrigBase + segment['zLim']*zDeltaSign))
         zTrigger = self.zNmtoV(self.zTrigBase + segment['zLim']*zDeltaSign)
         fTrigger = (self.fTrigBase + segment['fLim']*directionSign)*self.deflectionToV
         tTrigger = segment['holdT']
         
         zTriggerEnabled = int(zTrigger != 0)
-        fTriggerEnabled = int(fTrigger != 0)
+        fTriggerEnabled = 0#int(fTrigger != 0)
         tTriggerEnabled = int(segment['speed'] == 0)
 
         self.curveIntpr.setTriggersSwitch(tTriggerEnabled,zTriggerEnabled,fTriggerEnabled)
@@ -945,39 +966,49 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
         if segment['type'] == 'Fconst':
             self.curveIntpr.setSetPoint(self.fTrigBase*self.deflectionToV)
-        elif segment['type'] != 'Fconst' and segment['type'] == 'Zconst':
-            rds,t6t = self.speedToDacStep(segment['speed'])
+        elif segment['type'] != 'Fconst' and segment['type'] != 'Zconst':
+            rds,t6t = self.speedToDacStep(segment['speed'],0.0,segment['zLim'])
             self.curveIntpr.setZramp(rds,t6t)
             self.curveIntpr.setZrampSign(int(zDeltaSign<0))
-        
         self.curveIntpr.startSegment(segment['type'])
     
         
     def segmentDone(self,v):
         if not v:
-            tempQueue = self.curveData.queue[0]
+            tempQueue = self.curveData.queue[1]
             self.currZ,self.currF = self.emptyDataQueue(tempQueue)
-            self.zTrigBase = np.mean(self.currZ[-20:])
-            self.fTrigBase = np.mean(self.currF[-20:])
+            #print('currZ[0]: {0}'.format(self.currZ[0]))
+            print('currZ: {0}'.format(self.currZ))
+            self.zTrigBase = np.mean(self.currZ[-10:])
+            self.fTrigBase = np.mean(self.currF[-10:])
             if self.currentSeg > 0:
                 self.currentSaver.waitingInLineZ.append(self.currZ)
                 self.currentSaver.waitingInLineF.append(self.currF)
                 self.currentSaver.segParams.append(self.segmentsToDo[self.currentSeg])
                 self.currentSaver.curves.append(self.currentCurve)
-            del self.curveData.queue[0]
+            del self.curveData.queue[1]
             self.cycleExp()
 
 
     def emptyDataQueue(self,q):
 
-        t = zv = fv = []
+        '''
+        t = z = fv = []
         for i in range(q.qsize()):
             temp = q.get()
+            #print('q.get: {0}, temp[0]: {1}, temp[1]: {2}, temp[2]: {3}'.format(temp,temp[0],temp[1],temp[2]))
             t.append(temp[0])
-            zv.append(temp[1])
+            print('temp[1]: {0}'.format(temp[1]))
+            z.append(self.zVtoNm(temp[1]))
+            print('z[-1]: {0}'.format(z[-1]))
             fv.append(temp[2])
-        z = self.zVtoNm(np.array(zv))
-        f = np.array(fv)/self.deflectionToV
+        '''
+        d = q.queue
+        data = np.array(d)
+        zv = data[:,1]
+        fv = data[:,2]
+        z = self.zVtoNm(zv)
+        f = fv/self.deflectionToV
 
         return z,f
         
@@ -1021,13 +1052,19 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.pointsToDo = 1
         self.curvesToDo = self.curveNumNum.value()
         seg = {}
-        seg['zLim'] = self.startZNumDbl.value()
+
+        self.zTrigBase = self.zPiezoNumDbl.value()*1000
+
+        #print('start: {0}, base: {1}'.format(self.startZNumDbl.value(),self.zTrigBase))
+        seg['zLim'] = abs(self.startZNumDbl.value()-self.zTrigBase)
         seg['fLim'] = 0
         seg['speed'] = self.toStartSpeed
-        seg['direction'] = 2
+        #print('Near: {0}'.format(int((self.startZNumDbl.value()>self.zTrigBase))))
+        seg['direction'] = 2+1*(int((self.startZNumDbl.value()>self.zTrigBase)))#(self.startZNumDbl.value()>self.zTrigBase) if self.nearFar<0 else (self.startZNumDbl.value()<self.zTrigBase)))
         seg['holdT'] = 0
-        
-        tempSegsList = [seg]+self.getStandardSeg()
+        seg['type'] = 'Vconst'
+        #print('Initial seg: {0}'.format(seg))
+        tempSegsList = ([seg] if seg['zLim'] != 0.0 else [])+self.getStandardSeg()
         self.startExperiment(tempSegsList)
     
     
@@ -1083,6 +1120,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.xyRes.respReceived.disconnect()
         self.currentSaver.go = False
         self.xyCmd.send('S',[])
+        self.curveData.chunkReceived
         self.goToRest()
         
     
@@ -1175,6 +1213,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def epzConnections(self):
         
         self.curveData.yDataReceived.connect(self.sendZ)
+        #self.curveData.chunkReceived.connect(self.sendZ)
         #self.monitData.chunkReceived.connect(self.updateQPD)
         self.monitData.xDataReceived.connect(self.deflNumDbl.setValue)
         self.monitData.yDataReceived.connect(self.torsNumDbl.setValue)
@@ -1210,6 +1249,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             self.curveIntpr.stopDev()
             self.monitIntpr.stopDev()
 
+            '''
             reply = QMessageBox.question(self, 'Message',
                                                "Do you want to kill the devices (If you say yes, you'll have to turn the towers off and then on before using CoMPlEx again)?",
                                                QMessageBox.Yes, QMessageBox.No)
@@ -1217,6 +1257,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 self.curveIntpr.killDev()
                 self.monitIntpr.killDev()
                 self.xyCmd.send('K')
+
+            '''
 
             self.motorsDock.visibilityChanged.disconnect()
             self.settingsDock.visibilityChanged.disconnect()
