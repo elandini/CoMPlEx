@@ -1,4 +1,8 @@
+import sys
+CURRMOD = list(sys.modules.keys())
 try:
+    ENV = 'PyQt5'
+    CURRMOD.index(ENV)
     from PyQt5.QtWidgets import QFileDialog, QMainWindow, QSpinBox
     from PyQt5.QtWidgets import QDoubleSpinBox, QMessageBox, QCheckBox, QLineEdit
     from PyQt5.QtGui import QIcon, QPixmap, QColor
@@ -6,14 +10,14 @@ try:
     from PyQt5 import QtCore
     import pyqtgraph as pg
 
-    ENV = 'PyQt5'
 except:
+    ENV = 'PyQt4'
+    CURRMOD.index(ENV)
     from PyQt4.QtGui import QFileDialog, QMainWindow,QIcon, QPixmap, QColor
     from PyQt4.QtGui import QSpinBox, QDoubleSpinBox, QMessageBox, QCheckBox, QLineEdit
     from PyQt4.QtCore import QThread
     from PyQt4 import QtCore
     import pyqtgraph as pg
-    ENV = 'PyQt4'
 print(ENV)
 from GUIs.CoMPlEx_MainGUI import Ui_CoMPlEx_GUI
 from GUIs.CoMPlEx_hwConfig_Engine import hwConfig_dial

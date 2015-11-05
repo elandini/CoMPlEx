@@ -1,10 +1,15 @@
-from GUIs.CoMPlEx_hwConfig_Dialog import Ui_hwConfig_dialog
+import sys
+CURRMOD = list(sys.modules.keys())
 try:
-    from PyQt5.QtWidgets import QDialog,QMessageBox,QFileDialog
     ENV = 'PyQt5'
+    CURRMOD.index(ENV)
+    from PyQt5.QtWidgets import QDialog,QMessageBox,QFileDialog
 except:
-    from PyQt4.QtGui import QDialog,QMessageBox,QFileDialog
     ENV = 'PyQt4'
+    CURRMOD.index(ENV)
+    from PyQt4.QtGui import QDialog,QMessageBox,QFileDialog
+
+from GUIs.CoMPlEx_hwConfig_Dialog import Ui_hwConfig_dialog
 # from ConfigParser import ConfigParser
 from configparser import ConfigParser
 from os.path import splitext

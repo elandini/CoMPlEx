@@ -1,7 +1,13 @@
+import sys
+CURRMOD = list(sys.modules.keys())
 try:
+    ENV = 'PyQt5'
+    CURRMOD.index(ENV)
     from PyQt5.QtWidgets import QDialog
     import pyqtgraph as pg
 except:
+    ENV = 'PyQt4'
+    CURRMOD.index(ENV)
     from PyQt4.QtGui import QDialog
 
 
