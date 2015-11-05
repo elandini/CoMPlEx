@@ -304,8 +304,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         sleep(0.2)
         self.curveData.start()
         self.monitData.start()
-        self.curveIntpr.circulaBufferOn()
-        self.monitIntpr.circulaBufferOn()
+        #self.curveIntpr.circulaBufferOn()
+        #self.monitIntpr.circulaBufferOn()
         self.curveIntpr.startDev()
         self.monitIntpr.startDev()
         self.xyRes.start()
@@ -676,7 +676,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         channel = self.channelCmbBox.currentText()
         self.channelCmbBox.setEnabled(True)
-        self.curveData.chunkReceived.disconnect()
+        try:
+            self.curveData.chunkReceived.disconnect()
+        except:
+            pass
         if channel == 'Calib QPD' or channel == 'Calib K':
             self.goToRest()
         elif channel == 'Engage':
@@ -827,21 +830,27 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
         totVrange = abs(self.systemDict['zMaxV']-self.systemDict['zMinV'])
         vrange = self.zNmtoVRel(abs(za-zb))
+        print('vrange: {0}'.format(vrange))
         totSteps = 2**int(self.privates['dacbits'])
         t6 = float(self.privates['t6'])
         speedV = self.zNmtoVRel(speed)
+        print('speedv: {0}'.format(speedV))
         dt = vrange/speedV
+        print('dt: {0}'.format(dt))
         vMinStep = totVrange/totSteps
+        print('vMinStep: {0}'.format(vMinStep))
         nSteps = dt/t6
+        print('nSteps: {0}'.format(nSteps))
         vStep = vrange/nSteps
         vStepDacEquiv = vStep/vMinStep
+        print('dacstepDbl: {0}'.format(vStepDacEquiv))
         if vStepDacEquiv > 0.5:
             realVStepDacEquiv = round(vStepDacEquiv)
             numT6Ticks4DacStep = 1
         else:
             realVStepDacEquiv = 1
             numT6Ticks4DacStep = round(1/vStepDacEquiv)
-
+        print('dacSteps: {0}, numt6: {1}'.format(realVStepDacEquiv,numT6Ticks4DacStep))
         return realVStepDacEquiv,numT6Ticks4DacStep
 
 
@@ -975,18 +984,18 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def segmentDone(self,v):
         if not v:
-            tempQueue = self.curveData.queue[1]
+            tempQueue = self.curveData.queue[0]
             self.currZ,self.currF = self.emptyDataQueue(tempQueue)
             #print('currZ[0]: {0}'.format(self.currZ[0]))
             print('currZ: {0}'.format(self.currZ))
-            self.zTrigBase = np.mean(self.currZ[-10:])
+            self.zTrigBase = self.currZ[-1]
             self.fTrigBase = np.mean(self.currF[-10:])
             if self.currentSeg > 0:
                 self.currentSaver.waitingInLineZ.append(self.currZ)
                 self.currentSaver.waitingInLineF.append(self.currF)
                 self.currentSaver.segParams.append(self.segmentsToDo[self.currentSeg])
                 self.currentSaver.curves.append(self.currentCurve)
-            del self.curveData.queue[1]
+            del self.curveData.queue[0]
             self.cycleExp()
 
 
