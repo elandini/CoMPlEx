@@ -1440,9 +1440,6 @@
            </property>
           </widget>
          </item>
-         <item row="8" column="1">
-          <widget class="QDoubleSpinBox" name="curveNumNum"/>
-         </item>
          <item row="7" column="0">
           <widget class="QCheckBox" name="constForceCkBox">
            <property name="text">
@@ -1505,6 +1502,9 @@
             <enum>Qt::Horizontal</enum>
            </property>
           </widget>
+         </item>
+         <item row="8" column="1">
+          <widget class="QSpinBox" name="curveNumNum"/>
          </item>
         </layout>
        </widget>
