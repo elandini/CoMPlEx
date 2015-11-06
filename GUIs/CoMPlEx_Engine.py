@@ -968,11 +968,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             
     
     def doSegment(self):
-        # send segment parameters
+
         segment = self.segmentsToDo[self.currentSeg]
         directionSign = (-1)**(int(segment['direction'] == 3))
-        #print('Current Segment: {0}'.format(segment))
-        #print('Direction sign: {0}, NearFar: {1}'.format(directionSign,self.nearFar))
         zDeltaSign = self.nearFar*directionSign
         print('Z base: {0}'.format(self.zTrigBase))
         print('Z lim: {0}'.format(segment['zLim']))
@@ -984,6 +982,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         zTriggerEnabled = int(zTrigger != 0)
         fTriggerEnabled = 0#int(fTrigger != 0)
         tTriggerEnabled = int(segment['speed'] == 0)
+
+        self.curveIntpr.goToRest()
+        #self.curveIntpr.cmd.send('START_MODSAFE',[0,0])
 
         self.curveIntpr.setTriggersSwitch(tTriggerEnabled,zTriggerEnabled,fTriggerEnabled)
         self.curveIntpr.setZposStopTrig(zTrigger,int(zDeltaSign<0))
