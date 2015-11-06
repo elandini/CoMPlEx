@@ -81,6 +81,8 @@ class CMD(object):
     def send(self, cmd, values=[]):
         msg = '{0}:{2}:{1}'.format(self.device, cmd, self.tag)
 
+        print('CMD head: {0}'.format(self.device+':'+self.tag+':'+cmd))
+
         if type(values) != list :
             values = [values]
         for v in values:
@@ -119,7 +121,10 @@ class SkelCMDREC(object):
     def oneShotRead(self):
 
         if not self.setDone:
+            print('Setting things up')
             self.setZmq()
+
+        print('Waiting for a response on: {0}\n'.format(self.head))
 
         body = self.socket.recv_string()
         resp = body.strip(self.head).split(':')[0]
@@ -129,9 +134,12 @@ class SkelCMDREC(object):
         
     def run(self):
         if not self.setDone:
+            print('Setting things up')
             self.setZmq()
 
         if self.oneShot:
+            print('Waiting for a response on: {0}\n'.format(self.head))
+
             body = self.socket.recv_string()
             resp = body.strip(self.head).split(':')[0]
             self.react(resp)
@@ -262,15 +270,9 @@ class CMDREC(SkelCMDREC,threading.Thread):
 
 
 try:
-    import sys
-    CURRMOD = list(sys.modules.keys())
     try:
-        ENV = 'PyQt5'
-        CURRMOD.index(ENV)
-        from PyQt5.QtWidgets import QApplication
+        from PyQt5.QtCore import pyqtSignal, QThread
     except:
-        ENV = 'PyQt4'
-        CURRMOD.index(ENV)
         from PyQt4.QtCore import pyqtSignal, QThread
 
 
@@ -312,6 +314,7 @@ try:
             
         
         def react(self,resp):
+            print('I\'m reacting')
             self.respReceived.emit(resp)
 
 

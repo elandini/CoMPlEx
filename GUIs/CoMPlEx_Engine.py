@@ -18,7 +18,7 @@ except:
     from PyQt4.QtCore import QThread
     from PyQt4 import QtCore
     import pyqtgraph as pg
-print(ENV)
+
 from GUIs.CoMPlEx_MainGUI import Ui_CoMPlEx_GUI
 from GUIs.CoMPlEx_hwConfig_Engine import hwConfig_dial
 from GUIs.CoMPlEx_zPath_Engine import zPath_dial
@@ -40,7 +40,6 @@ try:
     if 'tag' not in keys:
         from libs.epz import epz as tempEpz
     epz = tempEpz
-    print('bad')
 except:
     from libs.epz import epz
 
@@ -109,8 +108,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                                 self.remoteDock:[self.action_Remote,'isVisible','setChecked','changed'],
                                 self.qpdNpiezoDock:[self.action_QPD_and_piezo,'isVisible','setChecked','changed']}
 
-        prova = self.centralPlot.plotItem.getAxis('left')
-
         self.custFvsdSegs = []
         self.zTrigBase = 0.0
         self.fTrigBase = 0.0
@@ -172,27 +169,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             if channel not in self.channels:
                 self.channelCmbBox.removeItem(self.channelCmbBox.findText(channel))
                 self.channels.append(channel)
-    
-    
-    def getParamsDict(self):
-        
-        baseDict = {QSpinBox:['NUM','.value()','.setValue(',[]],QDoubleSpinBox:['DBL','.value()','.setValue(',[]],
-                    QLineEdit:['LINE','.text()','.setText(',[]],QCheckBox:['CKBOX','.isChecked()','.setChecked(',[]]}
-        
-        for d in dir(self):
-            dObj = getattr(self, d)
-            try:
-                if dObj.isReadOnly():
-                    continue
-            except:
-                pass
-            if type(dObj) in baseDict.keys():
-                baseDict[type(dObj)][3].append(d)
-            else:
-                pass
-        
-        return baseDict
-    
+
     
     def applyConfig(self):
         
@@ -312,11 +289,30 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         sleep(0.5)
         self.curveData.start()
         self.monitData.start()
-        #self.curveIntpr.circulaBufferOn()
-        #self.monitIntpr.circulaBufferOn()
         self.curveIntpr.startDev()
         self.monitIntpr.startDev()
         self.xyRes.start()
+
+#### Parameters management #############################################################################################
+
+    def getParamsDict(self):
+
+        baseDict = {QSpinBox:['NUM','.value()','.setValue(',[]],QDoubleSpinBox:['DBL','.value()','.setValue(',[]],
+                    QLineEdit:['LINE','.text()','.setText(',[]],QCheckBox:['CKBOX','.isChecked()','.setChecked(',[]]}
+
+        for d in dir(self):
+            dObj = getattr(self, d)
+            try:
+                if dObj.isReadOnly():
+                    continue
+            except:
+                pass
+            if type(dObj) in baseDict.keys():
+                baseDict[type(dObj)][3].append(d)
+            else:
+                pass
+
+        return baseDict
 
     
     def saveParams(self):
@@ -374,8 +370,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                     except:
                         value = '\'' + value + '\''
                     eval('self.' + a + lDict[k][2] + value + ')')
-        
-    
+
+########################################################################################################################
+
+#### Parameters management #############################################################################################
+
     def uploadEpzParam(self):
         
         culprit = self.sender()
@@ -505,7 +504,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         types = ['Zconst','Fconst','Vconst','Vconst']
         seg = {}
 
-        print('end: {0}, start: {1}'.format(self.endZNumDbl.value(),self.startZNumDbl.value()))
         seg['zLim'] = abs(self.endZNumDbl.value()-self.startZNumDbl.value())
         seg['fLim'] = self.maxFNumDbl.value()
         seg['speed'] = self.appSpeedNumDbl.value()
@@ -847,27 +845,20 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
         totVrange = abs(self.systemDict['zMaxV']-self.systemDict['zMinV'])
         vrange = self.zNmtoVRel(abs(za-zb))
-        print('vrange: {0}'.format(vrange))
         totSteps = 2**int(self.privates['dacbits'])
         t6 = float(self.privates['t6'])
         speedV = self.zNmtoVRel(speed)
-        print('speedv: {0}'.format(speedV))
         dt = vrange/speedV
-        print('dt: {0}'.format(dt))
         vMinStep = totVrange/totSteps
-        print('vMinStep: {0}'.format(vMinStep))
         nSteps = dt/t6
-        print('nSteps: {0}'.format(nSteps))
         vStep = vrange/nSteps
         vStepDacEquiv = vStep/vMinStep
-        print('dacstepDbl: {0}'.format(vStepDacEquiv))
         if vStepDacEquiv > 0.5:
             realVStepDacEquiv = round(vStepDacEquiv)
             numT6Ticks4DacStep = 1
         else:
             realVStepDacEquiv = 1
             numT6Ticks4DacStep = round(1/vStepDacEquiv)
-        print('dacSteps: {0}, numt6: {1}'.format(realVStepDacEquiv,numT6Ticks4DacStep))
         return realVStepDacEquiv,numT6Ticks4DacStep
 
 
@@ -940,7 +931,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveData.chunkReceived.connect(self.ramblingPlotManager)
         self.xyRes.respReceived.connect(self.doSegment)
 
-        #self.doSegment()
         self.xyCmd.send('GZ',[])
     
     
@@ -972,9 +962,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         segment = self.segmentsToDo[self.currentSeg]
         directionSign = (-1)**(int(segment['direction'] == 3))
         zDeltaSign = self.nearFar*directionSign
-        print('Z base: {0}'.format(self.zTrigBase))
-        print('Z lim: {0}'.format(segment['zLim']))
-        print('Trigger in nm: {0}'.format(self.zTrigBase + segment['zLim']*zDeltaSign))
         zTrigger = self.zNmtoV(self.zTrigBase + segment['zLim']*zDeltaSign)
         fTrigger = (self.fTrigBase + segment['fLim']*directionSign)*self.deflectionToV
         tTrigger = segment['holdT']
@@ -982,9 +969,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         zTriggerEnabled = int(zTrigger != 0)
         fTriggerEnabled = 0#int(fTrigger != 0)
         tTriggerEnabled = int(segment['speed'] == 0)
-
-        self.curveIntpr.goToRest()
-        #self.curveIntpr.cmd.send('START_MODSAFE',[0,0])
 
         self.curveIntpr.setTriggersSwitch(tTriggerEnabled,zTriggerEnabled,fTriggerEnabled)
         self.curveIntpr.setZposStopTrig(zTrigger,int(zDeltaSign<0))
@@ -1004,8 +988,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         if not v:
             tempQueue = self.curveData.queue[0]
             self.currZ,self.currF = self.emptyDataQueue(tempQueue)
-            #print('currZ[0]: {0}'.format(self.currZ[0]))
-            print('currZ: {0}'.format(self.currZ))
             self.zTrigBase = self.currZ[-1]
             self.fTrigBase = np.mean(self.currF[-10:])
             if self.currentSeg > 0:
@@ -1019,17 +1001,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
     def emptyDataQueue(self,q):
 
-        '''
-        t = z = fv = []
-        for i in range(q.qsize()):
-            temp = q.get()
-            #print('q.get: {0}, temp[0]: {1}, temp[1]: {2}, temp[2]: {3}'.format(temp,temp[0],temp[1],temp[2]))
-            t.append(temp[0])
-            print('temp[1]: {0}'.format(temp[1]))
-            z.append(self.zVtoNm(temp[1]))
-            print('z[-1]: {0}'.format(z[-1]))
-            fv.append(temp[2])
-        '''
         d = q.queue
         data = np.array(d)
         zv = data[:,1]
@@ -1082,15 +1053,12 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
         self.zTrigBase = self.zPiezoNumDbl.value()*1000
 
-        #print('start: {0}, base: {1}'.format(self.startZNumDbl.value(),self.zTrigBase))
         seg['zLim'] = abs(self.startZNumDbl.value()-self.zTrigBase)
         seg['fLim'] = 0
         seg['speed'] = self.toStartSpeed
-        #print('Near: {0}'.format(int((self.startZNumDbl.value()>self.zTrigBase))))
         seg['direction'] = 2+1*(int((self.startZNumDbl.value()>self.zTrigBase)))#(self.startZNumDbl.value()>self.zTrigBase) if self.nearFar<0 else (self.startZNumDbl.value()<self.zTrigBase)))
         seg['holdT'] = 0
         seg['type'] = 'Vconst'
-        #print('Initial seg: {0}'.format(seg))
         tempSegsList = ([seg] if seg['zLim'] != 0.0 else [])+self.getStandardSeg()
         self.startExperiment(tempSegsList)
     
@@ -1105,6 +1073,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         seg['speed'] = self.toStartSpeed
         seg['direction'] = 2
         seg['holdT'] = 0
+        seg['type'] = 'Vconst'
         
         tempSegsList = [seg]+self.getStandardSeg()
         self.startExperiment(tempSegsList)
@@ -1121,6 +1090,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         seg['speed'] = self.toStartSpeed
         seg['direction'] = 2
         seg['holdT'] = 0
+        seg['type'] = 'Vconst'
         
         tempSegsList = [seg]+self.custFvsdSegs
         self.startExperiment(tempSegsList)
@@ -1136,6 +1106,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         seg['speed'] = self.toStartSpeed
         seg['direction'] = 2
         seg['holdT'] = 0
+        seg['type'] = 'Vconst'
         
         tempSegsList = [seg]+self.custFvsdSegs
         self.startExperiment(tempSegsList)
@@ -1147,7 +1118,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.xyRes.respReceived.disconnect()
         self.currentSaver.go = False
         self.xyCmd.send('S',[])
-        self.curveData.chunkReceived
+        try:
+            self.curveData.chunkReceived.disconnect()
+        except Exception as e:
+            print(e.message)
+
         self.goToRest()
         
     
@@ -1271,22 +1246,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             "Do you really want to close CoMPlEx?", QMessageBox.Yes, QMessageBox.No)
 
         if reply == QMessageBox.Yes:
-            self.curveIntpr.circulaBufferOff()
-            self.monitIntpr.circulaBufferOff()
             self.curveIntpr.stopDev()
             self.monitIntpr.stopDev()
-
-            '''
-            reply = QMessageBox.question(self, 'Message',
-                                               "Do you want to kill the devices (If you say yes, you'll have to turn the towers off and then on before using CoMPlEx again)?",
-                                               QMessageBox.Yes, QMessageBox.No)
-            if reply == QMessageBox.Yes:
-                self.curveIntpr.killDev()
-                self.monitIntpr.killDev()
-                self.xyCmd.send('K')
-
-            '''
-
             self.motorsDock.visibilityChanged.disconnect()
             self.settingsDock.visibilityChanged.disconnect()
             self.remoteDock.visibilityChanged.disconnect()
