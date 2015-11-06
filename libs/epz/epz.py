@@ -262,9 +262,15 @@ class CMDREC(SkelCMDREC,threading.Thread):
 
 
 try:
+    import sys
+    CURRMOD = list(sys.modules.keys())
     try:
-        from PyQt5.QtCore import pyqtSignal, QThread
+        ENV = 'PyQt5'
+        CURRMOD.index(ENV)
+        from PyQt5.QtWidgets import QApplication
     except:
+        ENV = 'PyQt4'
+        CURRMOD.index(ENV)
         from PyQt4.QtCore import pyqtSignal, QThread
 
 

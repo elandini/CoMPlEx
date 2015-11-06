@@ -309,7 +309,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
     def startEpzs(self):
 
-        sleep(0.2)
+        sleep(0.5)
         self.curveData.start()
         self.monitData.start()
         #self.curveIntpr.circulaBufferOn()
@@ -678,12 +678,16 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.programs[channel]()
         
         self.channelCmbBox.setEnabled(False)
+        self.playBtn.setEnabled(False)
+        self.stopBtn.setEnabled(True)
         
         
     def remoteStop(self):
         
         channel = self.channelCmbBox.currentText()
         self.channelCmbBox.setEnabled(True)
+        self.playBtn.setEnabled(True)
+        self.stopBtn.setEnabled(False)
         try:
             self.curveData.chunkReceived.disconnect()
         except:
@@ -718,11 +722,16 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
         self.rdsLine.setText('Engaging...')
 
+        self.channelMng('FvsD curve')
+        self.channelMng('FvsD map')
+        self.channelMng('Custom curve')
+        self.channelMng('Custom map')
+
+        '''
         self.curveIntpr.setP(self.pGainNumDbl.value())
         self.curveIntpr.setI(self.iGainNumDbl.value())
         self.curveIntpr.setSetPoint(self.setPtNumDbl.value()*self.deflectionToV)
-        self.channelMng('FvsD curve')
-        '''
+
         self.ramblingPlot = self.centralPlot.plot([],[],pen = self.ramblingPen)
 
         self.curveIntpr.setTriggersSwitch(0,0,0)
@@ -931,8 +940,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveData.chunkReceived.connect(self.ramblingPlotManager)
         self.xyRes.respReceived.connect(self.doSegment)
 
-        self.doSegment()
-        #self.xyCmd.send('GZ',[])
+        #self.doSegment()
+        self.xyCmd.send('GZ',[])
     
     
     def initCurvePlot(self,segNum):
