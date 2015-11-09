@@ -81,8 +81,6 @@ class CMD(object):
     def send(self, cmd, values=[]):
         msg = '{0}:{2}:{1}'.format(self.device, cmd, self.tag)
 
-        print('CMD head: {0}'.format(self.device+':'+self.tag+':'+cmd))
-
         if type(values) != list :
             values = [values]
         for v in values:
@@ -121,10 +119,7 @@ class SkelCMDREC(object):
     def oneShotRead(self):
 
         if not self.setDone:
-            print('Setting things up')
             self.setZmq()
-
-        print('Waiting for a response on: {0}\n'.format(self.head))
 
         body = self.socket.recv_string()
         resp = body.strip(self.head).split(':')[0]
@@ -134,11 +129,9 @@ class SkelCMDREC(object):
         
     def run(self):
         if not self.setDone:
-            print('Setting things up')
             self.setZmq()
 
         if self.oneShot:
-            print('Waiting for a response on: {0}\n'.format(self.head))
 
             body = self.socket.recv_string()
             resp = body.strip(self.head).split(':')[0]
@@ -221,7 +214,6 @@ class Skeldata(object):
 
     def run(self):
         self.setzmq()
-        print('{0} channel on {1} starting to receive'.format(self.tag,self.device))
         while self.goahead:
             body = self.socket.recv_string()
             data = [float(x) for x in body.strip(self.head).split(':')]
@@ -252,7 +244,6 @@ class Skeldata(object):
                     self.x=[]
                     self.y=[]
                     self.z=[]
-        print('Finishing data thread')
 
 
 class DATA(Skeldata, threading.Thread):
@@ -314,7 +305,6 @@ try:
             
         
         def react(self,resp):
-            print('I\'m reacting')
             self.respReceived.emit(resp)
 
 

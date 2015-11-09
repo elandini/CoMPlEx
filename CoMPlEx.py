@@ -10,14 +10,17 @@ except:
     CURRMOD.index(ENV)
     from PyQt4.QtGui import QApplication
 
-import sys
 from GUIs.CoMPlEx_Engine import CoMPlEx_main
 
+try:
+    VERBOSE = sys.argv[1] == '-v' or sys.argv[1] == '--verbose'
+except:
+    VERBOSE = False
 
 if __name__ == '__main__':
     
     app = QApplication(sys.argv)
-    mainWin = CoMPlEx_main()
+    mainWin = CoMPlEx_main(verbose = VERBOSE)
     mainWin.show()
     
     app.exec_()

@@ -4,7 +4,7 @@ try:
     ENV = 'PyQt5'
     CURRMOD.index(ENV)
     from PyQt5.QtWidgets import QFileDialog, QMainWindow, QSpinBox
-    from PyQt5.QtWidgets import QDoubleSpinBox, QMessageBox, QCheckBox, QLineEdit
+    from PyQt5.QtWidgets import QDoubleSpinBox, QMessageBox, QCheckBox, QLineEdit, QInputDialog
     from PyQt5.QtGui import QIcon, QPixmap, QColor
     from PyQt5.QtCore import QThread
     from PyQt5 import QtCore
@@ -14,7 +14,7 @@ except:
     ENV = 'PyQt4'
     CURRMOD.index(ENV)
     from PyQt4.QtGui import QFileDialog, QMainWindow,QIcon, QPixmap, QColor
-    from PyQt4.QtGui import QSpinBox, QDoubleSpinBox, QMessageBox, QCheckBox, QLineEdit
+    from PyQt4.QtGui import QSpinBox, QDoubleSpinBox, QMessageBox, QCheckBox, QLineEdit, QInputDialog
     from PyQt4.QtCore import QThread
     from PyQt4 import QtCore
     import pyqtgraph as pg
@@ -52,7 +52,6 @@ except AttributeError:
     def _fromUtf8(s):
         return s
 
-
 CHUNK = 1000
 DEC = 10
 NOTLEN = 50
@@ -78,11 +77,13 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             {'color':'#000000','width':1},{'color':'#8D9494','width':1}]
     ramblingPen = {'color':'#0033CC','width':2}
     
-    def __init__(self,parent = None):
+    def __init__(self,parent = None, verbose = False):
     
         super(CoMPlEx_main,self).__init__(parent)
         self.setupUi(self)
-        
+
+        self.verbose = verbose
+
         icon = QIcon()
         icon.addPixmap(QPixmap(_fromUtf8("GUIs/Icons/altZ.bmp")), QIcon.Normal, QIcon.Off)
         self.altZSegBtn.setIcon(icon)
@@ -899,18 +900,41 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     
     def startExperiment(self,segments):
 
-        self.segmentsToDo = segments
-        
-        self.currentCurve = curve.curve()
+        if self.verbose:
+            print('Setting experiment up')
 
+        self.segmentsToDo = segments
+        self.currentCurve = curve.curve()
         self.zTrigBase = self.zPiezoNumDbl.value()*1000
-        self.fTrigBase = 0
-        
-        self.curveDir = self.dirLine.text() if self.dirLine.text() != '' else self.curveDir
+        self.fTrigBase = self.deflNumDbl.value()/self.deflectionToV
+
+        if self.verbose:
+            print('Number of segments: {0}\nZ start value: {1}\nF starting value: {2}'.format(self.segmentsToDo,
+                                                                                              self.zTrigBase,
+                                                                                              self.fTrigBase))
+
+        if self.dirLine.text() == '':
+            reply = QMessageBox.question(self, 'Message',
+                                         "You haven't specified a directory for your experiment. Do you want to save your data in the default folder?", QMessageBox.Yes, QMessageBox.No)
+
+            if reply == QMessageBox.Yes:
+                pass
+            else:
+                self.getDataDir()
+                self.curveDir = self.dirLine.text()
         if not exists(self.curveDir):
             makedirs(self.curveDir)
         self.baseCurveName = self.fileNameRootLine.text() if self.fileNameRootLine.text() != '' else self.baseCurveName
         self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
+        if exists(self.currentCurvePath):
+            reply = QMessageBox.question(self, 'Message',
+                                         "The file {0} already exists. Do you want to change your \'base curve name\'?".format(self.currentCurvePath),
+                                         QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                basename,ok = QInputDialog.getText(self,'Base curve name','Enter a base name for you curves:',QLineEdit.Normal)
+                if ok and basename:
+                    self.baseCurveName = basename
+                    self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
         self.currentCurve.k = self.kNumDbl.value()
         self.currentCurve.filename = self.currentCurvePath
         self.currentCurve.save(self.currentCurvePath)
@@ -965,7 +989,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         zTrigger = self.zNmtoV(self.zTrigBase + segment['zLim']*zDeltaSign)
         fTrigger = (self.fTrigBase + segment['fLim']*directionSign)*self.deflectionToV
         tTrigger = segment['holdT']
-        
+
         zTriggerEnabled = int(zTrigger != 0)
         fTriggerEnabled = 0#int(fTrigger != 0)
         tTriggerEnabled = int(segment['speed'] == 0)
@@ -981,15 +1005,34 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             rds,t6t = self.speedToDacStep(segment['speed'],0.0,segment['zLim'])
             self.curveIntpr.setZramp(rds,t6t)
             self.curveIntpr.setZrampSign(int(zDeltaSign<0))
+
+        if self.verbose:
+            print('Starting the following segment')
+            print('Segment type: {0}'.format(segment['type']))
+            print('Segment speed: {0}'.format(segment['speed']))
+            print('Segment direction sign: {0}'.format(directionSign))
+            print('Segment z delta sign: {0}'.format(zDeltaSign))
+            print('Z trigger: {0}nm, Enabled: {1}'.format(zTrigger,zTriggerEnabled==1))
+            print('F trigger: {0}pN, Enabled: {1}'.format(fTrigger,fTriggerEnabled==1))
+            print('Time trigger: {0}s, Enabled: {1}'.format(tTrigger,tTriggerEnabled==1))
+
         self.curveIntpr.startSegment(segment['type'])
     
         
     def segmentDone(self,v):
+
+        if self.verbose:
+            print('Self.curveData \"save\" state: {0}'.format(v))
         if not v:
             tempQueue = self.curveData.queue[0]
             self.currZ,self.currF = self.emptyDataQueue(tempQueue)
             self.zTrigBase = self.currZ[-1]
             self.fTrigBase = np.mean(self.currF[-10:])
+            if self.verbose:
+                print('Current data length: {0}'.format(self.currZ.shape[0]))
+                print('New Z trigger base: {0}nm'.format(self.zTrigBase))
+                print('New F trigger base: {0}pN'.format(self.fTrigBase))
+
             if self.currentSeg > 0:
                 self.currentSaver.waitingInLineZ.append(self.currZ)
                 self.currentSaver.waitingInLineF.append(self.currF)
@@ -1013,7 +1056,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def cycleExp(self):
         if self.currentSeg > 0:
-            self.plottedSegs[self.currentSeg-1].setData(self.currZ[::],self.currF[::])
+            self.plottedSegs[self.currentSeg-1].setData(self.currZ[::DEC],self.currF[::DEC])
         
         self.currentSeg += 1
         if self.currentSeg == len(self.segmentsToDo):
@@ -1021,11 +1064,17 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             self.clearPlot()
             self.currentCurveNum += 1
             self.currentSeg = 1
+
+            if self.verbose:
+                print('Curve number {0} ended'.format(self.currentCurveNum))
+
             if self.currentCurveNum == self.curvesToDo:
                 if self.currentPtNum+1 == self.pointsToDo:
+                    if self.verbose:
+                        print('Ending experiment')
                     self.curveData.stateChanged.disconnect()
                     self.remoteStop()
-                    return 
+                    return
                 self.currentPtNum += 1
                 self.currentCurveNum = 0
                 self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
@@ -1033,9 +1082,14 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 self.currentCurve.k = self.kNumDbl.value()
                 self.currentCurve.save(self.currentCurvePath)
                 self.experimentRds()
+                if self.verbose:
+                    print('Point number {0} ended'.format(self.currentPtNum))
+                    print('New curve path: {0}'.format(self.currentCurvePath))
                 self.makeAstep(self.mapPoints[self.currentPtNum][0], self.mapPoints[self.currentPtNum][1])
             else:
                 self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
+                if self.verbose:
+                    print('New curve path: {0}'.format(self.currentCurvePath))
                 self.currentCurve.filename = self.currentCurvePath
                 self.currentCurve.k = self.kNumDbl.value()
                 self.currentCurve.save(self.currentCurvePath)
@@ -1121,7 +1175,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         try:
             self.curveData.chunkReceived.disconnect()
         except Exception as e:
-            print(e.message)
+            print(e)
 
         self.goToRest()
         
