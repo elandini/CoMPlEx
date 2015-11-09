@@ -56,6 +56,8 @@ CHUNK = 1000
 DEC = 10
 NOTLEN = 50
 
+SLEEPT = 0.1
+
 '''
 1 #0033CC
 2 #FF0000
@@ -909,7 +911,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.fTrigBase = self.deflNumDbl.value()/self.deflectionToV
 
         if self.verbose:
-            print('Number of segments: {0}\nZ start value: {1}\nF starting value: {2}'.format(self.segmentsToDo,
+            print('Number of segments: {0}\nZ start value: {1}nm\nF starting value: {2}pN'.format(len(self.segmentsToDo),
                                                                                               self.zTrigBase,
                                                                                               self.fTrigBase))
 
@@ -995,15 +997,20 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         tTriggerEnabled = int(segment['speed'] == 0)
 
         self.curveIntpr.setTriggersSwitch(tTriggerEnabled,zTriggerEnabled,fTriggerEnabled)
+        sleep(SLEEPT)
         self.curveIntpr.setZposStopTrig(zTrigger,int(zDeltaSign<0))
-        self.curveIntpr.setDeflStopTrig(fTrigger,int(directionSign*self.deflSign<0))
-        self.curveIntpr.setTimeStopTrig(tTrigger,0)
+        sleep(SLEEPT)
+        #self.curveIntpr.setDeflStopTrig(fTrigger,int(directionSign*self.deflSign<0))
+        #sleep(SLEEPT)
+        #self.curveIntpr.setTimeStopTrig(tTrigger,0)
+        #sleep(SLEEPT)
 
         if segment['type'] == 'Fconst':
             self.curveIntpr.setSetPoint(self.fTrigBase*self.deflectionToV)
         elif segment['type'] != 'Fconst' and segment['type'] != 'Zconst':
             rds,t6t = self.speedToDacStep(segment['speed'],0.0,segment['zLim'])
             self.curveIntpr.setZramp(rds,t6t)
+            sleep(SLEEPT)
             self.curveIntpr.setZrampSign(int(zDeltaSign<0))
 
         if self.verbose:
@@ -1016,6 +1023,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             print('F trigger: {0}pN, Enabled: {1}'.format(fTrigger,fTriggerEnabled==1))
             print('Time trigger: {0}s, Enabled: {1}'.format(tTrigger,tTriggerEnabled==1))
 
+        sleep(SLEEPT)
         self.curveIntpr.startSegment(segment['type'])
     
         
@@ -1172,10 +1180,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.xyRes.respReceived.disconnect()
         self.currentSaver.go = False
         self.xyCmd.send('S',[])
-        try:
-            self.curveData.chunkReceived.disconnect()
-        except Exception as e:
-            print(e)
 
         self.goToRest()
         

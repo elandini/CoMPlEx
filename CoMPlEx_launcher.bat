@@ -1,1 +1,1 @@
-python CoMPlEx.py
+python3 CoMPlEx.py -v
