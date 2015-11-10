@@ -198,7 +198,7 @@ class Interpreter(object):
     ## Turns on the feedback
     def feedbackOn(self):
 
-        self.cmd.send('SET_MODEDBG',2)
+        self.cmd.send('SET_MODESAFE',[2,0])
 
 
     def setSine(self):
