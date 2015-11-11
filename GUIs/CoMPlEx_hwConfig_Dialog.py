@@ -2,8 +2,7 @@
 
 # Form implementation generated from reading ui file 'GUIs\CoMPlEx_hwConfig_Dialog.ui'
 #
-# Created: Tue Nov 10 11:24:08 2015
-#      by: PyQt4 UI code generator 4.9.6
+# Created by: PyQt4 UI code generator 4.11.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -147,6 +146,22 @@ class Ui_hwConfig_dialog(object):
         self.movingObjCmbBox.addItem(_fromUtf8(""))
         self.movingObjCmbBox.addItem(_fromUtf8(""))
         self.formLayout_2.setWidget(5, QtGui.QFormLayout.FieldRole, self.movingObjCmbBox)
+        self.label_5.raise_()
+        self.maxPiezoVoltNumDbl.raise_()
+        self.label_6.raise_()
+        self.minPiezoVoltNumDbl.raise_()
+        self.label_7.raise_()
+        self.label_8.raise_()
+        self.maxPiezoExtNumDbl.raise_()
+        self.minPiezoExtNumDbl.raise_()
+        self.label_9.raise_()
+        self.farNearCmbBox.raise_()
+        self.toStartSpeedNumDbl.raise_()
+        self.label_19.raise_()
+        self.maxSpeedNumDbl.raise_()
+        self.label_22.raise_()
+        self.label_23.raise_()
+        self.movingObjCmbBox.raise_()
         self.verticalLayout.addWidget(self.groupBox_2)
         self.groupBox_3 = QtGui.QGroupBox(hwConfig_dialog)
         self.groupBox_3.setObjectName(_fromUtf8("groupBox_3"))

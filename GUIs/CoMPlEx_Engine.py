@@ -59,6 +59,7 @@ SLEEPT = 0.2
 
 SKIPME = {'direction': 5}
 ZSENS = 3.0
+TSCALE = 1e+6
 
 '''
 1 #0033CC
@@ -475,7 +476,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def qpdMonitProgs(self):
         
         culprit = self.sender()
-        newVal = self.sumVMonToVQPD(culprit.value()) if culprit is self.sumNumDbl else self.deflVMonToVQPD(culprit.value())
+        newVal = culprit.value() # self.sumVMonToVQPD(culprit.value()) if culprit is self.sumNumDbl else self.deflVMonToVQPD(culprit.value())
         
         if culprit == self.deflNumDbl:
             if newVal < 0:
@@ -542,7 +543,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             seg2['speed'] = 0
             seg2['direction'] = 1 if self.constForceCkBox.isChecked() else 0
             seg2['type'] = types[seg2['direction']] 
-            seg2['holdT'] = self.holdTimeNumDbl.value()*1e+6
+            seg2['holdT'] = self.holdTimeNumDbl.value()*TSCALE
         
             stdSegments.append(seg2)
         
@@ -576,7 +577,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         seg['speed'] = self.speedcNumDbl.value()
         seg['direction'] = self.getDir()
         seg['type'] = types[seg['direction']]
-        seg['holdT'] = self.holdTimecNumDbl.value()
+        seg['holdT'] = self.holdTimecNumDbl.value()*TSCALE
         
         self.custFvsdSegs.append(seg)
         
@@ -673,7 +674,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.endZcNumDbl.setValue(seg['deltaZ'])
         self.endFcNumDbl.setValue(seg['fLim'])
         self.speedcNumDbl.setValue(seg['speed'])
-        self.holdTimecNumDbl.setValue(seg['holdT'])
+        self.holdTimecNumDbl.setValue(seg['holdT']/TSCALE)
         self.setDir(seg['direction'])
         
         
@@ -688,7 +689,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.custFvsdSegs[ind]['speed'] = self.speedcNumDbl.value()
         self.custFvsdSegs[ind]['direction'] = self.getDir()
         self.custFvsdSegs[ind]['type'] = types[self.custFvsdSegs[ind]['direction']]
-        self.custFvsdSegs[ind]['holdT'] = self.holdTimecNumDbl.value()
+        self.custFvsdSegs[ind]['holdT'] = self.holdTimecNumDbl.value()*TSCALE
         self.custFvsdSegs[ind]['fbOn'] = self.altFSegBtn.isChecked()
             
             
@@ -931,11 +932,16 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
         if self.verbose:
             print('Setting experiment up')
+        if self.curvesToDo == 0:
+            self.remoteStop()
 
         self.segmentsToDo = segments
         self.currentCurve = curve.curve()
         self.zTrigBase = self.zPiezoNumDbl.value()*1000
         self.fTrigBase = self.deflNumDbl.value()/self.deflectionToV
+        self.currentCurveNum = 0
+        self.currentPtNum = 0
+        self.currentSeg = 0
 
         if self.verbose:
             print('Number of segments: {0}\nZ start value: {1}nm\nF starting value: {2}pN'.format(len(self.segmentsToDo),
@@ -957,7 +963,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             makedirs(self.curveDir)
         self.baseCurveName = self.fileNameRootLine.text() if self.fileNameRootLine.text() != '' else self.baseCurveName
         self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
-        if exists(self.currentCurvePath):
+        while exists(self.currentCurvePath):
             reply = QMessageBox.question(self, 'Message',
                                          "The file {0} already exists. Do you want to change your \'base curve name\'?".format(self.currentCurvePath),
                                          QMessageBox.Yes, QMessageBox.No)
@@ -966,14 +972,14 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 if ok and basename:
                     self.baseCurveName = basename
                     self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
+                else:
+                    continue
+            else:
+                break
         self.currentCurve.k = self.kNumDbl.value()
         self.currentCurve.filename = self.currentCurvePath
         self.currentCurve.save(self.currentCurvePath)
         self.mapPoints = self.createSpiral(self.xStepNumMapNum.value(), self.yStepNumMapNum.value(), self.pointsToDo)
-        
-        self.currentCurveNum = 0
-        self.currentPtNum = 0
-        self.currentSeg = 0
         
         self.remoteProg.setMaximum(self.curvesToDo*self.pointsToDo-1)
         self.experimentRds()
@@ -1025,23 +1031,40 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         '''
 
         seg = self.segmentsToDo[self.currentSeg]
+        stdOrCust = self.channelCmbBox.currentText().find('FvsD') != -1
+        rds = t6t = 0
         if seg['direction'] == 5:
             self.cycleExp()
         directionSign = (-1)**(int(seg['direction'] == 3)) # Direction 3 == Approaching => well done!
         if seg['direction'] == 4:
-            startPos = self.startZNumDbl.value() if self.channelCmbBox.currentText().find('FvsD') != -1 else self.startZcNumDbl.value()
+            startPos = self.startZNumDbl.value() if stdOrCust else self.startZcNumDbl.value()
+            if self.verbose:
+                print('\nDelta z to start Position: {0}'.format(abs(startPos-self.zTrigBase)))
             if abs(startPos-self.zTrigBase)<ZSENS:
-                self.cycleExp()
-            zDeltaSign = -1**(startPos>self.zTrigBase)
+                seg['holdT'] = 1*TSCALE
+                seg['type'] = 'Zconst'
+            else:
+                rds,t6t = self.speedToDacStep(seg['speed'],startPos,self.zTrigBase)
+            zDeltaSign = (-1)**(startPos<self.zTrigBase)
+            self.curveIntpr.setZramp(rds,t6t)
+            sleep(SLEEPT)
+            self.curveIntpr.setZrampSign(int(zDeltaSign<0))
         else:
             zDeltaSign = self.nearFar*directionSign
+            if seg['type'] == 'Fconst':
+                self.curveIntpr.setSetPoint(self.fTrigBase*self.deflectionToV)
+            elif seg['type'] != 'Fconst' and seg['type'] != 'Zconst':
+                rds,t6t = self.speedToDacStep(seg['speed'],self.startZNumDbl.value(),self.endZNumDbl.value()) if stdOrCust else self.speedToDacStep(seg['speed'],0.0,seg['deltaZ'])
+                self.curveIntpr.setZramp(rds,t6t)
+                sleep(SLEEPT)
+                self.curveIntpr.setZrampSign(int(zDeltaSign<0))
         zTrigger = self.zNmtoV(self.zTrigBase + seg['deltaZ']*zDeltaSign) if seg['zLim'] is None else self.zNmtoV(seg['zLim'])
         fTrigger = (self.fTrigBase + seg['fLim']*directionSign*self.deflSign)*self.deflectionToV
         tTrigger = seg['holdT']
 
         zTriggerEnabled = int(zTrigger != 0 and seg['type'] != 'Zconst' and seg['type'] != 'Fconst')
         fTriggerEnabled = 0#int(fTrigger != 0)
-        tTriggerEnabled = int(seg['speed'] == 0)
+        tTriggerEnabled = int(seg['holdT'] > 0)
 
         self.curveIntpr.setTriggersSwitch(tTriggerEnabled,zTriggerEnabled,fTriggerEnabled)
         sleep(SLEEPT)
@@ -1052,25 +1075,19 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveIntpr.setTimeStopTrig(tTrigger,0)
         sleep(SLEEPT)
 
-        if seg['type'] == 'Fconst':
-            self.curveIntpr.setSetPoint(self.fTrigBase*self.deflectionToV)
-        elif seg['type'] != 'Fconst' and seg['type'] != 'Zconst':
-            rds,t6t = self.speedToDacStep(seg['speed'],0.0,seg['zLim'])
-            self.curveIntpr.setZramp(rds,t6t)
-            sleep(SLEEPT)
-            self.curveIntpr.setZrampSign(int(zDeltaSign<0))
 
         if self.verbose:
-            print('\n\nStarting the following segment')
+            print('\n\nStarting segment number {0}'.format(self.currentSeg))
+            print('Standard FvsD curve: {0}'.format(stdOrCust))
             print('Segment type: {0}'.format(seg['type']))
             print('Segment speed: {0}'.format(seg['speed']))
             print('Segment direction sign: {0}'.format(directionSign))
             print('Segment z delta sign: {0}'.format(zDeltaSign))
-            print('Z trigger: {0}nm, Enabled: {1}'.format(zTrigger,zTriggerEnabled==1))
-            print('F trigger: {0}pN, Enabled: {1}'.format(fTrigger,fTriggerEnabled==1))
-            print('Time trigger: {0}s, Enabled: {1}'.format(tTrigger,tTriggerEnabled==1))
-
-        sleep(SLEEPT)
+            print('Z trigger: {0}V, Enabled: {1}'.format(zTrigger,zTriggerEnabled==1))
+            print('F trigger: {0}V, Enabled: {1}'.format(fTrigger,fTriggerEnabled==1))
+            print('Time trigger: {0}us, Enabled: {1}'.format(tTrigger,tTriggerEnabled==1))
+            print('Dacsteps: {0}; T6 ticks for step: {0}'.format(rds,t6t))
+        
         self.curveIntpr.startSegment(seg['type'])
     
         
@@ -1088,7 +1105,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 print('New Z trigger base: {0}nm'.format(self.zTrigBase))
                 print('New F trigger base: {0}pN'.format(self.fTrigBase))
 
-            if self.currentSeg > 0:
+            if self.currentSeg > 0 and self.currentSeg < len(self.segmentsToDo):
                 self.currentSaver.waitingInLineZ.append(self.currZ)
                 self.currentSaver.waitingInLineF.append(self.currF)
                 self.currentSaver.segParams.append(self.segmentsToDo[self.currentSeg])
@@ -1117,7 +1134,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             self.currentCurve = curve.curve()
             self.clearPlot()
             self.currentCurveNum += 1
-            self.currentSeg = 1
+            self.currentSeg = 0
 
             if self.verbose:
                 print('Curve number {0} ended'.format(self.currentCurveNum))
@@ -1161,7 +1178,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
         self.zTrigBase = self.zPiezoNumDbl.value()*1000
 
-        seg['zLim'] = abs(self.startZNumDbl.value()-self.zTrigBase)
+        seg['zLim'] = self.startZNumDbl.value()
         seg['deltaZ'] = None
         seg['fLim'] = 0
         seg['speed'] = self.toStartSpeed
@@ -1203,13 +1220,13 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         seg['deltaZ'] = None
         seg['fLim'] = 0
         seg['speed'] = self.toStartSpeed
-        seg['direction'] = 2+1*(int((self.startZNumDbl.value()>self.zTrigBase)))#(self.startZNumDbl.value()>self.zTrigBase) if self.nearFar<0 else (self.startZNumDbl.value()<self.zTrigBase)))
+        seg['direction'] = 4
         seg['holdT'] = 0
         seg['type'] = 'Vconst'
         
         if self.verbose:
             print('Distance from the starting point: {0}'.format(seg['zLim']))
-        tempSegsList = [seg]+self.getStandardSeg()
+        tempSegsList = [seg]+self.custFvsdSegs
         self.startExperiment(tempSegsList)
     
     
@@ -1228,7 +1245,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         if self.verbose:
             print('Distance from the starting point: {0}'.format(seg['zLim']))
-        tempSegsList = [seg]+self.getStandardSeg()
+        tempSegsList = [seg]+self.custFvsdSegs
         self.startExperiment(tempSegsList)
     
     
@@ -1237,6 +1254,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.expInProgress = False
         self.xyRes.respReceived.disconnect()
         self.currentSaver.go = False
+        self.currentSaver.forceStop = True
+        self.currentSeg = len(self.segmentsToDo)
+        self.currentCurveNum = self.curvesToDo
+        self.currentPtNum = self.pointsToDo-1
         self.xyCmd.send('S',[])
 
         self.goToRest()
@@ -1383,12 +1404,15 @@ class SaveThread(QThread):
         self.segParams = []
         self.curves = []
         self.go = True
+        self.forceStop = False
         self.parent = parent
     
     
     def run(self):
 
         while self.go or len(self.waitingInLineZ)>0:
+            if self.forceStop:
+                break
             if len(self.waitingInLineZ)>0:
                 newz = self.waitingInLineZ[0]
                 newf = self.waitingInLineF[0]
