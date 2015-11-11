@@ -60,6 +60,7 @@ SLEEPT = 0.2
 SKIPME = {'direction': 5}
 ZSENS = 3.0
 TSCALE = 1e+6
+DEFLAVG = 10
 
 '''
 1 #0033CC
@@ -118,6 +119,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.zTrigBase = 0.0
         self.fTrigBase = 0.0
         self.nonCntF = 0.0
+        self.countDeflAvg = 0
+        self.cumulDefl = 0
         
         self.programs = {'Engage':self.remoteEngage,'Calib QPD':self.remoteCalibQPD,'Calib K':self.calibK,
                          'FvsD curve':self.fvsd,'FvsD map':self.fvsdMap,'Custom curve':self.custom,'Custom map':self.customMap}
@@ -562,6 +565,18 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         #zValue = self.zVtoNm(np.mean(z))/1000.0
         zValue = self.zVtoNm(v)/1000.0
         self.zPiezoNumDbl.setValue(zValue)
+    
+    
+    def deflAvg(self,v):
+
+        if self.expInProgress:
+            return
+        self.countDeflAvg += 1
+        self.cumulDefl += v
+        if self.countDeflAvg == DEFLAVG:
+            self.nonCntF = self.cumulDefl/self.countDeflAvg/self.deflectionToV
+            self.countDeflAvg = 0
+            self.cumulDefl = 0.0
         
         
     def startAnalyzing(self):
@@ -1000,11 +1015,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             print('Setting experiment up')
         if self.curvesToDo == 0:
             self.remoteStop()
-
+        self.expInProgress = True
         self.segmentsToDo = segments
         self.currentCurve = curve.curve()
         self.zTrigBase = self.zPiezoNumDbl.value()*1000
-        self.fTrigBase = self.deflNumDbl.value()/self.deflectionToV
+        self.fTrigBase = self.nonCntF
         self.currentCurveNum = 0
         self.currentPtNum = 0
         self.currentSeg = 0
@@ -1050,7 +1065,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.remoteProg.setMaximum(self.curvesToDo*self.pointsToDo-1)
         self.experimentRds()
         
-        self.expInProgress = True
         self.currentSaver = SaveThread(self)
         self.currentSaver.start()
         self.curveData.stateChanged.connect(self.segmentDone)
@@ -1058,8 +1072,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveData.chunkReceived.connect(self.ramblingPlotManager)
         self.xyRes.respReceived.connect(self.doSegment)
 
-        self.xyCmd.send('GZ',[])
-        #self.doSegment()
+        #self.xyCmd.send('GZ',[])
+        self.doSegment()
     
     
     def initCurvePlot(self,segNum):
@@ -1418,6 +1432,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def epzConnections(self):
         
         self.curveData.yDataReceived.connect(self.sendZ)
+        self.curveData.zDataReceived.connect(self.deflAvg)
         #self.curveData.chunkReceived.connect(self.sendZ)
         #self.monitData.chunkReceived.connect(self.updateQPD)
         self.monitData.xDataReceived.connect(self.deflNumDbl.setValue)

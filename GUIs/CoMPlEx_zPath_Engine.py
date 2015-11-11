@@ -38,7 +38,7 @@ class zPath_dial(Ui_zPath_dialog,QDialog):
         for s in segs:
             z = s['zlim'] if s['zlim'] is not None else s['deltaz']
             dz = abs(z-zOld) if s['zlim'] is not None else s['deltaz']
-            dt = s['holdT'] if s['direction'] == 2 else dz/s['speed']
+            dt = s['holdt'] if s['direction'] < 2 else dz/s['speed']
             zs.append(z)
             ts.append(tOld+dt)
             tOld+=dt
