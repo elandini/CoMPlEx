@@ -357,9 +357,38 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             paramsParser.add_section(sDict[k][0])
             for i in range(len(sDict[k][3])):
                 paramsParser.set(sDict[k][0], sDict[k][3][i], str(eval('self.'+sDict[k][3][i]+sDict[k][1])))
-        
+
+        if self.custFvsdSegs != []:
+            reply = QMessageBox.question(self, 'Message',
+                                        'Do you want to save also the custom spectroscopy segments?',
+                                        QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                custSegFileName = splitext(parFileName)[0]+'_custSeg.seg'
+                self.saveCustomSegs(self.custFvsdSegs,custSegFileName)
+                paramsParser.set('MISC','custsegs',custSegFileName)
+
         paramsParser.write(paramsFile)
+
         paramsFile.close()
+
+
+    def saveCustomSegs(self,custSegs,fileName):
+
+        segFile = open(fileName,'w')
+        csParser = ConfigParser()
+
+        ind = 0
+
+        for s in custSegs:
+            sect = 'SEGMENT'+str(ind)
+            csParser.add_section(sect)
+            for k in s.keys():
+                csParser.set(sect,k,str(s[k]))
+            ind += 1
+
+        csParser.write(segFile)
+
+        segFile.close()
         
     
     def loadParams(self):
@@ -380,6 +409,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                             'Please choose a parameter file for you current AFM')
             warning.exec_()
             self.loadParams()
+
         attrList = dir(self)
         for a in attrList:
             for k in lDict.keys():
@@ -390,6 +420,27 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                     except:
                         value = '\'' + value + '\''
                     eval('self.' + a + lDict[k][2] + value + ')')
+
+        if 'custsegs' in paramsParser.options('MISC'):
+            self.custFvsdSegs = []
+            csParser = ConfigParser()
+            csParser.read(paramsParser.get('MISC','custsegs'))
+            self.segCmbBox.currentIndexChanged.disconnect()
+            self.segCmbBox.clear()
+            for s in csParser.sections():
+                tempSeg = {}
+                tempSeg['type'] = csParser.get(s,'type')
+                tempSeg['deltaz'] = float(csParser.get(s,'deltaz')) if csParser.get(s,'deltaz') != 'None' else None
+                tempSeg['zlim'] = float(csParser.get(s,'zlim')) if csParser.get(s,'zlim') != 'None' else None
+                tempSeg['flim'] = float(csParser.get(s,'flim'))
+                tempSeg['direction'] = int(csParser.get(s,'direction'))
+                tempSeg['speed'] = float(csParser.get(s,'speed'))
+                tempSeg['holdt'] = float(csParser.get(s,'holdt'))
+                self.custFvsdSegs.append(tempSeg)
+                self.segCmbBox.addItem('Segment: ' + str(self.segCmbBox.count()))
+            self.segCmbBox.currentIndexChanged.connect(self.showSeg)
+            self.segCmbBox.setCurrentIndex(0)
+
 
 ########################################################################################################################
 
@@ -524,38 +575,38 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         types = ['Zconst','Fconst','Vconst','Vconst']
         seg = {}
 
-        seg['zLim'] = self.endZNumDbl.value()
-        seg['deltaZ'] = None
-        seg['fLim'] = self.maxFNumDbl.value()
+        seg['zlim'] = self.endZNumDbl.value()
+        seg['deltal'] = None
+        seg['flim'] = self.maxFNumDbl.value()
         seg['speed'] = self.appSpeedNumDbl.value()
         seg['direction'] = 3
         seg['type'] = types[seg['direction']]
-        seg['holdT'] = 0
+        seg['holdt'] = 0
         
         stdSegments.append(seg)
         
         if self.holdTimeNumDbl.value()>0:
             print('Seg2')
             seg2 = {}
-            seg2['zLim'] = 0
-            seg2['deltaZ'] = None
-            seg2['fLim'] = 0
+            seg2['zlim'] = 0
+            seg2['deltaz'] = None
+            seg2['flim'] = 0
             seg2['speed'] = 0
             seg2['direction'] = 1 if self.constForceCkBox.isChecked() else 0
             seg2['type'] = types[seg2['direction']] 
-            seg2['holdT'] = self.holdTimeNumDbl.value()*TSCALE
+            seg2['holdt'] = self.holdTimeNumDbl.value()*TSCALE
         
             stdSegments.append(seg2)
         
         seg3 = {}
         
-        seg3['zLim'] = self.startZNumDbl.value()
-        seg3['deltaZ'] = None
-        seg3['fLim'] = self.maxFNumDbl.minimum()
+        seg3['zlim'] = self.startZNumDbl.value()
+        seg3['deltaz'] = None
+        seg3['flim'] = self.maxFNumDbl.minimum()
         seg3['speed'] = self.retrSpeedNumDbl.value()
         seg3['direction'] = 2
         seg3['type'] = types[seg['direction']]
-        seg3['holdT'] = 0
+        seg3['holdt'] = 0
         
         stdSegments.append(seg3)
 
@@ -571,13 +622,13 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         seg = {}
         types = ['Zconst','Fconst','Vconst','Vconst']
         
-        seg['zLim'] = None
-        seg['deltaZ'] = self.endZcNumDbl.value()
-        seg['fLim'] = self.endFcNumDbl.value()
+        seg['zlim'] = None
+        seg['deltaz'] = self.endZcNumDbl.value()
+        seg['flim'] = self.endFcNumDbl.value()
         seg['speed'] = self.speedcNumDbl.value()
         seg['direction'] = self.getDir()
         seg['type'] = types[seg['direction']]
-        seg['holdT'] = self.holdTimecNumDbl.value()*TSCALE
+        seg['holdt'] = self.holdTimecNumDbl.value()*TSCALE
         
         self.custFvsdSegs.append(seg)
         
@@ -671,11 +722,26 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             return None
         
         seg = self.custFvsdSegs[self.segCmbBox.currentIndex()]
-        self.endZcNumDbl.setValue(seg['deltaZ'])
-        self.endFcNumDbl.setValue(seg['fLim'])
+        self.endZcNumDbl.setValue(seg['deltaz'])
+        self.endFcNumDbl.setValue(seg['flim'])
         self.speedcNumDbl.setValue(seg['speed'])
-        self.holdTimecNumDbl.setValue(seg['holdT']/TSCALE)
+        self.holdTimecNumDbl.setValue(seg['holdt']/TSCALE)
         self.setDir(seg['direction'])
+        if seg['direction']>1:
+            self.holdTimecNumDbl.setValue(0)
+            self.holdTimecNumDbl.setEnabled(False)
+            self.endZcNumDbl.setEnabled(True)
+            self.endFcNumDbl.setEnabled(True)
+            self.speedcNumDbl.setEnabled(True)
+        else:
+            self.endZcNumDbl.setValue(0)
+            self.endFcNumDbl.setValue(0)
+            self.speedcNumDbl.setValue(0)
+            self.endZcNumDbl.setEnabled(False)
+            self.endFcNumDbl.setEnabled(False)
+            self.speedcNumDbl.setEnabled(False)
+            self.holdTimecNumDbl.setEnabled(True)
+
         
         
     def updateSeg(self):
@@ -683,13 +749,13 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         ind = self.segCmbBox.currentIndex()
         types = ['Zconst','Fconst','Vconst','Vconst']
         
-        self.custFvsdSegs[ind]['zLim'] = None
-        self.custFvsdSegs[ind]['deltaZ'] = self.endZcNumDbl.value()
-        self.custFvsdSegs[ind]['fLim'] = self.endFcNumDbl.value()
+        self.custFvsdSegs[ind]['zlim'] = None
+        self.custFvsdSegs[ind]['deltaz'] = self.endZcNumDbl.value()
+        self.custFvsdSegs[ind]['flim'] = self.endFcNumDbl.value()
         self.custFvsdSegs[ind]['speed'] = self.speedcNumDbl.value()
         self.custFvsdSegs[ind]['direction'] = self.getDir()
         self.custFvsdSegs[ind]['type'] = types[self.custFvsdSegs[ind]['direction']]
-        self.custFvsdSegs[ind]['holdT'] = self.holdTimecNumDbl.value()*TSCALE
+        self.custFvsdSegs[ind]['holdt'] = self.holdTimecNumDbl.value()*TSCALE
         self.custFvsdSegs[ind]['fbOn'] = self.altFSegBtn.isChecked()
             
             
@@ -1041,7 +1107,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             if self.verbose:
                 print('\nDelta z to start Position: {0}'.format(abs(startPos-self.zTrigBase)))
             if abs(startPos-self.zTrigBase)<ZSENS:
-                seg['holdT'] = 1*TSCALE
+                seg['holdt'] = 1*TSCALE
                 seg['type'] = 'Zconst'
             else:
                 rds,t6t = self.speedToDacStep(seg['speed'],startPos,self.zTrigBase)
@@ -1054,17 +1120,17 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             if seg['type'] == 'Fconst':
                 self.curveIntpr.setSetPoint(self.fTrigBase*self.deflectionToV)
             elif seg['type'] != 'Fconst' and seg['type'] != 'Zconst':
-                rds,t6t = self.speedToDacStep(seg['speed'],self.startZNumDbl.value(),self.endZNumDbl.value()) if stdOrCust else self.speedToDacStep(seg['speed'],0.0,seg['deltaZ'])
+                rds,t6t = self.speedToDacStep(seg['speed'],self.startZNumDbl.value(),self.endZNumDbl.value()) if stdOrCust else self.speedToDacStep(seg['speed'],0.0,seg['deltaz'])
                 self.curveIntpr.setZramp(rds,t6t)
                 sleep(SLEEPT)
                 self.curveIntpr.setZrampSign(int(zDeltaSign<0))
-        zTrigger = self.zNmtoV(self.zTrigBase + seg['deltaZ']*zDeltaSign) if seg['zLim'] is None else self.zNmtoV(seg['zLim'])
-        fTrigger = (self.fTrigBase + seg['fLim']*directionSign*self.deflSign)*self.deflectionToV
-        tTrigger = seg['holdT']
+        zTrigger = self.zNmtoV(self.zTrigBase + seg['deltaz']*zDeltaSign) if seg['zlim'] is None else self.zNmtoV(seg['zlim'])
+        fTrigger = (self.fTrigBase + seg['flim']*directionSign*self.deflSign)*self.deflectionToV
+        tTrigger = seg['holdt']
 
         zTriggerEnabled = int(zTrigger != 0 and seg['type'] != 'Zconst' and seg['type'] != 'Fconst')
         fTriggerEnabled = 0#int(fTrigger != 0)
-        tTriggerEnabled = int(seg['holdT'] > 0)
+        tTriggerEnabled = int(seg['holdt'] > 0)
 
         self.curveIntpr.setTriggersSwitch(tTriggerEnabled,zTriggerEnabled,fTriggerEnabled)
         sleep(SLEEPT)
@@ -1178,15 +1244,15 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
         self.zTrigBase = self.zPiezoNumDbl.value()*1000
 
-        seg['zLim'] = self.startZNumDbl.value()
-        seg['deltaZ'] = None
-        seg['fLim'] = 0
+        seg['zlim'] = self.startZNumDbl.value()
+        seg['deltaz'] = None
+        seg['flim'] = 0
         seg['speed'] = self.toStartSpeed
         seg['direction'] = 4
-        seg['holdT'] = 0
+        seg['holdt'] = 0
         seg['type'] = 'Vconst'
         if self.verbose:
-            print('Distance from the starting point: {0}'.format(seg['zLim']))
+            print('Distance from the starting point: {0}'.format(seg['zlim']))
         tempSegsList = [seg]+self.getStandardSeg()
         self.startExperiment(tempSegsList)
     
@@ -1196,16 +1262,16 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.pointsToDo = self.ptNumMapNum.value()
         self.curvesToDo = self.curveNumNum.value()
         seg = {}
-        seg['zLim'] = self.startZNumDbl.value()
-        seg['deltaZ'] = None
-        seg['fLim'] = 0
+        seg['zlim'] = self.startZNumDbl.value()
+        seg['deltaz'] = None
+        seg['flim'] = 0
         seg['speed'] = self.toStartSpeed
         seg['direction'] = 4
-        seg['holdT'] = 0
+        seg['holdt'] = 0
         seg['type'] = 'Vconst'
         
         if self.verbose:
-            print('Distance from the starting point: {0}'.format(seg['zLim']))
+            print('Distance from the starting point: {0}'.format(seg['zlim']))
         tempSegsList = [seg]+self.getStandardSeg()
         self.startExperiment(tempSegsList)
     
@@ -1216,16 +1282,16 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curvesToDo = self.curveNumcNum.value()
         
         seg = {}
-        seg['zLim'] = self.startZcNumDbl.value()
-        seg['deltaZ'] = None
-        seg['fLim'] = 0
+        seg['zlim'] = self.startZcNumDbl.value()
+        seg['deltaz'] = None
+        seg['flim'] = 0
         seg['speed'] = self.toStartSpeed
         seg['direction'] = 4
-        seg['holdT'] = 0
+        seg['holdt'] = 0
         seg['type'] = 'Vconst'
         
         if self.verbose:
-            print('Distance from the starting point: {0}'.format(seg['zLim']))
+            print('Distance from the starting point: {0}'.format(seg['zlim']))
         tempSegsList = [seg]+self.custFvsdSegs
         self.startExperiment(tempSegsList)
     
@@ -1235,16 +1301,16 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.pointsToDo = self.ptNumMapNum.value()
         self.curvesToDo = self.curveNumcNum.value()
         seg = {}
-        seg['zLim'] = self.startZcNumDbl.value()
-        seg['deltaZ'] = None
-        seg['fLim'] = 0
+        seg['zlim'] = self.startZcNumDbl.value()
+        seg['deltaz'] = None
+        seg['flim'] = 0
         seg['speed'] = self.toStartSpeed
         seg['direction'] = 4
-        seg['holdT'] = 0
+        seg['holdt'] = 0
         seg['type'] = 'Vconst'
         
         if self.verbose:
-            print('Distance from the starting point: {0}'.format(seg['zLim']))
+            print('Distance from the starting point: {0}'.format(seg['zlim']))
         tempSegsList = [seg]+self.custFvsdSegs
         self.startExperiment(tempSegsList)
     
