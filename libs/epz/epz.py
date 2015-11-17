@@ -200,6 +200,12 @@ class Skeldata(object):
         self.socket.setsockopt_string(zmq.SUBSCRIBE,self.head)
         self.socket.connect("tcp://{0}:{1}".format(self.epserver, self.subport))
 
+
+    def flushMemory(self):
+        self.queue = []
+        self.queue.append(queue.Queue())
+
+
     def actondata(self,v):
         pass
 

@@ -61,6 +61,7 @@ SKIPME = {'direction': 5}
 ZSENS = 3.0
 TSCALE = 1e+6
 DEFLAVG = 10
+CNTMAX = 3000
 
 '''
 1 #0033CC
@@ -89,6 +90,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.setupUi(self)
 
         self.verbose = verbose
+        if self.verbose:
+            self.dacCount = 0
+            self.adcCount = 0
 
         icon = QIcon()
         icon.addPixmap(QPixmap(_fromUtf8("GUIs/Icons/altZ.bmp")), QIcon.Normal, QIcon.Off)
@@ -304,12 +308,17 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveData.decimate = DEC
         self.monitData.chunk = CHUNK
         self.monitData.decimate = DEC
+        self.curveData.notifyLength = NOTLEN
         self.monitData.notifyLength = NOTLEN
 
 
     def startEpzs(self):
 
         sleep(4.0)
+        if self.systemDict['zMinV'] >= 0:
+            self.curveIntpr.goUnipolar()
+        else:
+            self.curveIntpr.goBipolar()
         self.curveData.start()
         self.monitData.start()
         self.curveIntpr.startDev()
@@ -563,6 +572,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
         #z = np.array(v[1])
         #zValue = self.zVtoNm(np.mean(z))/1000.0
+        if self.verbose:
+            self.dacCount += 1
+            if self.dacCount == CNTMAX:
+                self.dacCount = 0
+                print('Generated signal: {0}V'.format(v))
         zValue = self.zVtoNm(v)/1000.0
         self.zPiezoNumDbl.setValue(zValue)
     
@@ -575,6 +589,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.cumulDefl += v
         if self.countDeflAvg == DEFLAVG:
             self.nonCntF = self.cumulDefl/self.countDeflAvg/self.deflectionToV
+            if self.verbose:
+                self.adcCount+= 1
+                if self.adcCount == CNTMAX:
+                    self.adcCount = 0
+                    self.sillyMonitor(self.cumulDefl/self.countDeflAvg)
             self.countDeflAvg = 0
             self.cumulDefl = 0.0
         
@@ -791,7 +810,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.stopBtn.setEnabled(True)
         
         
-    def remoteStop(self):
+    def remoteStop(self,forcing = True):
         
         channel = self.channelCmbBox.currentText()
         self.channelCmbBox.setEnabled(True)
@@ -804,10 +823,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         if channel == 'Calib QPD' or channel == 'Calib K':
             self.goToRest()
         elif channel == 'Engage':
-            #self.goToRest()
-            pass
+            self.goToRest()
         else:
-            self.stopExperiment()
+            self.stopExperiment(forcing)
     
     
     def motorRemoteCmd(self):
@@ -837,38 +855,37 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.channelMng('Custom curve')
         self.channelMng('Custom map')
 
-        '''
         self.curveIntpr.setP(self.pGainNumDbl.value())
         self.curveIntpr.setI(self.iGainNumDbl.value())
         self.curveIntpr.setSetPoint(self.setPtNumDbl.value()*self.deflectionToV)
 
+        if self.verbose:
+            print('\nEngaging')
+            print('Current P gain: {0}'.format(self.pGainNumDbl.value()))
+            print('Current I gain: {0}'.format(self.iGainNumDbl.value()))
+        
         self.ramblingPlot = self.centralPlot.plot([],[],pen = self.ramblingPen)
 
         self.curveIntpr.setTriggersSwitch(0,0,0)
         self.curveIntpr.feedbackOn()
         self.engaging = True
         self.curveData.chunkReceived.connect(self.engage)
-        '''
 
 
     def engage(self,v):
 
-        pass
-
-        '''
         self.ramblingPlotManager(v)
         if np.mean(np.array(v[2])/self.deflectionToV)>=self.setPtNumDbl.value():
             self.engaged = True
             self.rdsLine.setText('Engaged')
-            self.channelMng('Calib QPD')
-            self.channelMng('Calib K')
+            #self.channelMng('Calib QPD')
+            #self.channelMng('Calib K')
         else:
             self.engaged = False
             self.rdsLine.setText('Engaging...')
-            self.channelMng('Calib QPD','-')
-            self.channelMng('Calib K','-')
+            #self.channelMng('Calib QPD','-')
+            #self.channelMng('Calib K','-')
 
-        '''
 
         
     def remoteCalibQPD(self):
@@ -1091,6 +1108,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         for p in self.plottedSegs:
             p.setData([],[])
+        self.ramblingPlot.setData([],[])
     
     
     def ramblingPlotManager(self,v):
@@ -1143,7 +1161,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         tTrigger = seg['holdt']
 
         zTriggerEnabled = int(zTrigger != 0 and seg['type'] != 'Zconst' and seg['type'] != 'Fconst')
-        fTriggerEnabled = 0#int(fTrigger != 0)
+        fTriggerEnabled = 0 #int(fTrigger != 0)
         tTriggerEnabled = int(seg['holdt'] > 0)
 
         self.curveIntpr.setTriggersSwitch(tTriggerEnabled,zTriggerEnabled,fTriggerEnabled)
@@ -1184,8 +1202,12 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 print('Current data length: {0}'.format(self.currZ.shape[0]))
                 print('New Z trigger base: {0}nm'.format(self.zTrigBase))
                 print('New F trigger base: {0}pN'.format(self.fTrigBase))
+                print('Current z slice: {0}'.format(self.currZ[:10]))
+                print('Current segment index: {0}'.format(self.currentSeg))
 
             if self.currentSeg > 0 and self.currentSeg < len(self.segmentsToDo):
+                if self.verbose:
+                    print('Adding the current segment to the saver stack')
                 self.currentSaver.waitingInLineZ.append(self.currZ)
                 self.currentSaver.waitingInLineF.append(self.currF)
                 self.currentSaver.segParams.append(self.segmentsToDo[self.currentSeg])
@@ -1211,6 +1233,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.currentSeg += 1
         if self.currentSeg == len(self.segmentsToDo):
+            self.curveData.flushMemory()
             self.currentCurve = curve.curve()
             self.clearPlot()
             self.currentCurveNum += 1
@@ -1224,7 +1247,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                     if self.verbose:
                         print('Ending experiment')
                     self.curveData.stateChanged.disconnect()
-                    self.remoteStop()
+                    self.remoteStop(False)
                     return
                 self.currentPtNum += 1
                 self.currentCurveNum = 0
@@ -1329,12 +1352,12 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.startExperiment(tempSegsList)
     
     
-    def stopExperiment(self):
+    def stopExperiment(self,forcing = False):
         
         self.expInProgress = False
         self.xyRes.respReceived.disconnect()
         self.currentSaver.go = False
-        self.currentSaver.forceStop = True
+        self.currentSaver.forceStop = forcing
         self.currentSeg = len(self.segmentsToDo)
         self.currentCurveNum = self.curvesToDo
         self.currentPtNum = self.pointsToDo-1
@@ -1353,6 +1376,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.rdsLine.setText('Curve: ' + str(self.currentCurveNum+1) + '; Point: ' + str(self.currentPtNum+1))
         self.remoteProg.setValue(self.curvesToDo*self.currentPtNum+self.currentCurveNum)
+
+
+    def sillyMonitor(self,v):
+        print('Defl from adc: {0}'.format(v))
         
         
     def actionNdocksConnections(self):
@@ -1435,6 +1462,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.curveData.zDataReceived.connect(self.deflAvg)
         #self.curveData.chunkReceived.connect(self.sendZ)
         #self.monitData.chunkReceived.connect(self.updateQPD)
+        #self.monitData.xDataReceived.connect(lambda v: self.deflNumDbl.setValue(v*2-5.37))
+        #self.monitData.yDataReceived.connect(lambda v: self.torsNumDbl.setValue(v*2-5.6))
         self.monitData.xDataReceived.connect(self.deflNumDbl.setValue)
         self.monitData.yDataReceived.connect(self.torsNumDbl.setValue)
         self.monitData.zDataReceived.connect(self.sumNumDbl.setValue)
@@ -1504,11 +1533,18 @@ class SaveThread(QThread):
                 emptySeg.speed = tempSeg['speed']
                 emptySeg.direction = 'hold' if tempSeg['direction'] < 2 else ('far' if tempSeg['direction'] == 2 else 'near')
                 emptySeg.type = tempSeg['type']
+                
+                if self.parent.verbose:
+                    print('\nSaving following segment:')
+                    print('Direction: {0}'.format(emptySeg.direction))
+                    print('Type: {0}'.format(emptySeg.type))
+                    print('Speed: {0}nm/s'.format(emptySeg.speed))
+                
+                curve.appendToFile(emptySeg)
                 del self.waitingInLineZ[0]
                 del self.waitingInLineF[0]
                 del self.segParams[0]
                 del self.curves[0]
-                curve.appendToFile(emptySeg)
                 
             sleep(0.01)
             
