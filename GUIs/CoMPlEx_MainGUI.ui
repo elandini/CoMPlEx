@@ -77,11 +77,16 @@
     <number>8</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetContents">
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="8,3,3">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="8,2,3">
      <item>
       <layout class="QGridLayout" name="gridLayout_2" columnstretch="3,3,7,7" rowminimumheight="2,1,1,1,2">
        <item row="3" column="0">
         <widget class="QLabel" name="label_3">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>Sum [V]</string>
          </property>
@@ -94,6 +99,17 @@
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
          </property>
          <property name="readOnly">
           <bool>true</bool>
@@ -120,6 +136,17 @@
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="readOnly">
           <bool>true</bool>
          </property>
@@ -139,6 +166,12 @@
        </item>
        <item row="1" column="2">
         <widget class="QProgressBar" name="deflNegProg">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
          <property name="autoFillBackground">
           <bool>false</bool>
          </property>
@@ -161,6 +194,11 @@
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="label">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>Deflection [V]</string>
          </property>
@@ -174,9 +212,15 @@
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
          <property name="font">
           <font>
-           <pointsize>11</pointsize>
+           <pointsize>12</pointsize>
           </font>
          </property>
          <property name="readOnly">
@@ -198,6 +242,11 @@
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="label_2">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
           <string>Torsion [V]</string>
          </property>
@@ -205,6 +254,12 @@
        </item>
        <item row="1" column="3">
         <widget class="QProgressBar" name="deflPosProg">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
          <property name="maximum">
           <number>10</number>
          </property>
@@ -218,6 +273,12 @@
        </item>
        <item row="2" column="2">
         <widget class="QProgressBar" name="torsNegProg">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
          <property name="maximum">
           <number>10</number>
          </property>
@@ -234,6 +295,12 @@
        </item>
        <item row="2" column="3">
         <widget class="QProgressBar" name="torsPosProg">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
          <property name="maximum">
           <number>10</number>
          </property>
@@ -247,6 +314,12 @@
        </item>
        <item row="3" column="2" colspan="2">
         <widget class="QProgressBar" name="sumProg">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
          <property name="maximum">
           <number>10</number>
          </property>
@@ -292,6 +365,11 @@
         <layout class="QHBoxLayout" name="horizontalLayout_2">
          <item>
           <widget class="QLabel" name="label_4">
+           <property name="font">
+            <font>
+             <pointsize>12</pointsize>
+            </font>
+           </property>
            <property name="text">
             <string>Z [um]</string>
            </property>
@@ -304,6 +382,17 @@
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>40</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>12</pointsize>
+            </font>
            </property>
            <property name="readOnly">
             <bool>true</bool>
@@ -330,6 +419,18 @@
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>16777215</height>
+            </size>
            </property>
            <property name="maximum">
             <number>10</number>

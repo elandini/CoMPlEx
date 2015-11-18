@@ -5,7 +5,7 @@ try:
     CURRMOD.index(ENV)
     from PyQt5.QtWidgets import QFileDialog, QMainWindow, QSpinBox
     from PyQt5.QtWidgets import QDoubleSpinBox, QMessageBox, QCheckBox, QLineEdit, QInputDialog
-    from PyQt5.QtGui import QIcon, QPixmap, QColor
+    from PyQt5.QtGui import QIcon, QPixmap, QColor, QPalette
     from PyQt5.QtCore import QThread
     from PyQt5 import QtCore
     import pyqtgraph as pg
@@ -14,7 +14,7 @@ except:
     ENV = 'PyQt4'
     CURRMOD.index(ENV)
     from PyQt4.QtGui import QFileDialog, QMainWindow,QIcon, QPixmap, QColor
-    from PyQt4.QtGui import QSpinBox, QDoubleSpinBox, QMessageBox, QCheckBox, QLineEdit, QInputDialog
+    from PyQt4.QtGui import QSpinBox, QDoubleSpinBox, QMessageBox, QCheckBox, QLineEdit, QInputDialog, QPalette
     from PyQt4.QtCore import QThread
     from PyQt4 import QtCore
     import pyqtgraph as pg
@@ -551,6 +551,14 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             else:
                 self.deflNegProg.setValue(0)
                 self.deflPosProg.setValue(0)
+            if self.privates['dvim']<newVal<self.privates['dvmax']:
+                currPal = self.deflNumDbl.palette()
+                currPal.setColor(QPalette.Foreground,QColor.black())
+                self.deflNumDbl.setPalette(currPal)
+            else:
+                currPal = self.deflNumDbl.palette()
+                currPal.setColor(QPalette.Foreground,QColor.red())
+                self.deflNumDbl.setPalette(currPal)
             self.laserSpot.setData(self.laserSpot.xData,[newVal])
         elif culprit == self.torsNumDbl:
             if newVal < 0:
@@ -1109,13 +1117,26 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         for p in self.plottedSegs:
             p.setData([],[])
         self.ramblingPlot.setData([],[])
+
+
+    def turnTheAxis(self,z,f,turningPoint):
+
+        turnedZ = list(z)
+        turnedZ.reverse()
+        turnedF = list(f)
+        turnedF.reverse()
+
+        turnedZ = list(turningPoint - np.array(turnedZ))
+
+        return turnedZ, turnedF
     
     
     def ramblingPlotManager(self,v):
         
         data = np.array(v)
-        self.ramblingPlot.setData(self.zVtoNm(data[1,:]),data[2,:]/self.deflectionToV)
-            
+        z,f = self.turnTheAxis(self.zVtoNm(data[1,:]),data[2,:]/self.deflectionToV,self.systemDict['zMaxNm'])
+        self.ramblingPlot.setData(z,f)
+
     
     def doSegment(self):
 
@@ -1229,13 +1250,13 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def cycleExp(self):
         if self.currentSeg > 0:
-            self.plottedSegs[self.currentSeg-1].setData(self.currZ[::DEC],self.currF[::DEC])
+            z,f = self.turnTheAxis(self.currZ[::DEC],self.currF[::DEC],self.systemDict['zMaxNm'])
+            self.plottedSegs[self.currentSeg-1].setData(z,f)
         
         self.currentSeg += 1
         if self.currentSeg == len(self.segmentsToDo):
             self.curveData.flushMemory()
             self.currentCurve = curve.curve()
-            self.clearPlot()
             self.currentCurveNum += 1
             self.currentSeg = 0
 
@@ -1269,6 +1290,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 self.currentCurve.save(self.currentCurvePath)
                 self.experimentRds()
                 self.doSegment()
+            self.clearPlot()
         else:
             self.doSegment()
         
