@@ -82,6 +82,7 @@ class curve(mvobject.mvobject):
         out_file = open(str(fname),"w")
         out_file.write("# TEXT EXPORT\n")
         out_file.write("# springConstant: {0}\n".format(self.k))
+        out_file.write("# sensitivity: {0}\n".format(self.sensitivity))
         out_file.write("# units: m N\n")    
         if self.fzfd:
             out_file.write("# fzfd: 1\n")

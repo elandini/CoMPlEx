@@ -60,8 +60,13 @@ SLEEPT = 0.2
 SKIPME = {'direction': 5}
 ZSENS = 3.0
 TSCALE = 1e+6
-DEFLAVG = 10
-CNTMAX = 3000
+DEFLAVG = 20
+CNTMAX = 5
+
+RED = QColor(255,0,0)
+GREEN = QColor(0,255,0)
+BLUE = QColor(0,0,255)
+BLACK = QColor(0,0,0)
 
 '''
 1 #0033CC
@@ -144,6 +149,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.alignPlot.plotItem.showGrid(True,True,1)
         self.alignPlot.plotItem.setRange(xRange = [-10,10],yRange = [-10,10])
         self.alignPlot.plotItem.setMouseEnabled(False,False)
+        self.initCurvePlot(1)
         
         self.complexEnv = epz.Environment()
     
@@ -270,7 +276,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.deflVmax = float(self.privates['dvmax'])
         self.deflVmin = float(self.privates['dvmin'])
         self.maxFNumDbl.setMaximum(self.deflVmax)
-        self.maxFNumDbl.setMinimum(0)
+        self.maxFNumDbl.setMinimum(self.deflVmin)
         self.setPtNumDbl.setMaximum(self.deflVmax)
         self.setPtNumDbl.setMinimum(self.deflVmin)
         self.endFcNumDbl.setMaximum(self.deflVmax)
@@ -477,11 +483,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def changeRefDefl(self):
         
         self.maxFNumDbl.setMaximum(self.deflVmax*self.kdNumDbl.value()*self.kNumDbl.value())
-        self.maxFNumDbl.setMinimum(0)
+        self.maxFNumDbl.setMinimum(self.deflVmin*self.kdNumDbl.value()*self.kNumDbl.value())
         self.setPtNumDbl.setMaximum(self.deflVmax*self.kdNumDbl.value()*self.kNumDbl.value())
         self.setPtNumDbl.setMinimum(self.deflVmin*self.kdNumDbl.value()*self.kNumDbl.value())
         self.endFcNumDbl.setMaximum(self.deflVmax*self.kdNumDbl.value()*self.kNumDbl.value())
-        self.endFcNumDbl.setMinimum(0)
+        self.endFcNumDbl.setMinimum(self.deflVmin*self.kdNumDbl.value()*self.kNumDbl.value())
         
         self.label_7.setText('Set Point[V]' if self.kdNumDbl.value() == 1 else ('Set Point[nm]' if self.kNumDbl.value() == 1 else 'Set Point[pN]'))
 
@@ -551,13 +557,13 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             else:
                 self.deflNegProg.setValue(0)
                 self.deflPosProg.setValue(0)
-            if self.privates['dvim']<newVal<self.privates['dvmax']:
+            if float(self.privates['dvmin'])<newVal<float(self.privates['dvmax']):
                 currPal = self.deflNumDbl.palette()
-                currPal.setColor(QPalette.Foreground,QColor.black())
+                currPal.setColor(QPalette.Background,BLACK)#QColor.black())
                 self.deflNumDbl.setPalette(currPal)
             else:
                 currPal = self.deflNumDbl.palette()
-                currPal.setColor(QPalette.Foreground,QColor.red())
+                currPal.setColor(QPalette.Background,RED)
                 self.deflNumDbl.setPalette(currPal)
             self.laserSpot.setData(self.laserSpot.xData,[newVal])
         elif culprit == self.torsNumDbl:
@@ -584,7 +590,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             self.dacCount += 1
             if self.dacCount == CNTMAX:
                 self.dacCount = 0
-                print('Generated signal: {0}V'.format(v))
+                #print('Generated signal: {0}V'.format(v))
         zValue = self.zVtoNm(v)/1000.0
         self.zPiezoNumDbl.setValue(zValue)
     
@@ -830,8 +836,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             pass
         if channel == 'Calib QPD' or channel == 'Calib K':
             self.goToRest()
+            self.clearPlot()
         elif channel == 'Engage':
             self.goToRest()
+            self.clearPlot()
         else:
             self.stopExperiment(forcing)
     
@@ -872,7 +880,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             print('Current P gain: {0}'.format(self.pGainNumDbl.value()))
             print('Current I gain: {0}'.format(self.iGainNumDbl.value()))
         
-        self.ramblingPlot = self.centralPlot.plot([],[],pen = self.ramblingPen)
+        self.plottedSegs,self.ramblingPlot = self.initCurvePlot(1)
 
         self.curveIntpr.setTriggersSwitch(0,0,0)
         self.curveIntpr.feedbackOn()
@@ -1048,6 +1056,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.currentCurveNum = 0
         self.currentPtNum = 0
         self.currentSeg = 0
+        self.clearPlot()
 
         if self.verbose:
             print('Number of segments: {0}\nZ start value: {1}nm\nF starting value: {2}pN'.format(len(self.segmentsToDo),
@@ -1083,6 +1092,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             else:
                 break
         self.currentCurve.k = self.kNumDbl.value()
+        self.currentCurve.sensitivity = self.kdNumDbl.value()
         self.currentCurve.filename = self.currentCurvePath
         self.currentCurve.save(self.currentCurvePath)
         self.mapPoints = self.createSpiral(self.xStepNumMapNum.value(), self.yStepNumMapNum.value(), self.pointsToDo)
@@ -1106,7 +1116,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.centralPlot.clear()
         plots = []
         n = len(self.pens)
-        for i in range(len(self.segmentsToDo)):
+        for i in range(segNum):
             plots.append(self.centralPlot.plot([],[],pen=self.pens[i%n])),#i,i+1,i+2],[i,i*2,i*3],pen=self.pens[i%n]))
         ramblingPlot = self.centralPlot.plot([],[],pen=self.ramblingPen)
         return plots, ramblingPlot
@@ -1125,8 +1135,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         turnedZ.reverse()
         turnedF = list(f)
         turnedF.reverse()
+        turnedF = np.array(turnedF)
 
-        turnedZ = list(turningPoint - np.array(turnedZ))
+        turnedZ = turningPoint - np.array(turnedZ)
 
         return turnedZ, turnedF
     
@@ -1135,7 +1146,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         data = np.array(v)
         z,f = self.turnTheAxis(self.zVtoNm(data[1,:]),data[2,:]/self.deflectionToV,self.systemDict['zMaxNm'])
-        self.ramblingPlot.setData(z,f)
+        cX = np.array(self.ramblingPlot.xData)
+        cY = np.array(self.ramblingPlot.yData)
+        self.ramblingPlot.setData(np.concatenate((cX,z)),np.concatenate((cY,f)))
 
     
     def doSegment(self):
@@ -1178,19 +1191,19 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 sleep(SLEEPT)
                 self.curveIntpr.setZrampSign(int(zDeltaSign<0))
         zTrigger = self.zNmtoV(self.zTrigBase + seg['deltaz']*zDeltaSign) if seg['zlim'] is None else self.zNmtoV(seg['zlim'])
-        fTrigger = (self.fTrigBase + seg['flim']*directionSign*self.deflSign)*self.deflectionToV
+        fTrigger = (self.fTrigBase + abs(seg['flim'])*(-1*directionSign)*self.deflSign)*self.deflectionToV
         tTrigger = seg['holdt']
 
         zTriggerEnabled = int(zTrigger != 0 and seg['type'] != 'Zconst' and seg['type'] != 'Fconst')
-        fTriggerEnabled = 0 #int(fTrigger != 0)
+        fTriggerEnabled = 0 #int(fTrigger != 0 and seg['direction'] != 4 and seg['direction'] > 1)
         tTriggerEnabled = int(seg['holdt'] > 0)
 
         self.curveIntpr.setTriggersSwitch(tTriggerEnabled,zTriggerEnabled,fTriggerEnabled)
         sleep(SLEEPT)
+        #self.curveIntpr.setDeflStopTrig(fTrigger,int((-1*directionSign*self.deflSign)<0))
+        #sleep(SLEEPT)
         self.curveIntpr.setZposStopTrig(zTrigger,int(zDeltaSign<0))
         sleep(SLEEPT)
-        #self.curveIntpr.setDeflStopTrig(fTrigger,int(directionSign*self.deflSign<0))
-        #sleep(SLEEPT)
         self.curveIntpr.setTimeStopTrig(tTrigger,0)
         sleep(SLEEPT)
 
@@ -1200,10 +1213,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             print('Standard FvsD curve: {0}'.format(stdOrCust))
             print('Segment type: {0}'.format(seg['type']))
             print('Segment speed: {0}'.format(seg['speed']))
+            print('Segment force limit: {0}'.format(seg['flim']))
             print('Segment direction sign: {0}'.format(directionSign))
             print('Segment z delta sign: {0}'.format(zDeltaSign))
-            print('Z trigger: {0}V, Enabled: {1}'.format(zTrigger,zTriggerEnabled==1))
-            print('F trigger: {0}V, Enabled: {1}'.format(fTrigger,fTriggerEnabled==1))
+            print('Z trigger: {0}V, Enabled: {1}, Sign: {2}'.format(zTrigger,zTriggerEnabled==1,int(zDeltaSign<0)))
+            print('F trigger: {0}V, Enabled: {1}, Sign: {2}'.format(fTrigger,fTriggerEnabled==1,int((-1*directionSign*self.deflSign)<0)))
             print('Time trigger: {0}us, Enabled: {1}'.format(tTrigger,tTriggerEnabled==1))
             print('Dacsteps: {0}; T6 ticks for step: {0}'.format(rds,t6t))
         
@@ -1219,6 +1233,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             self.currZ,self.currF = self.emptyDataQueue(tempQueue)
             self.zTrigBase = self.currZ[-1]
             self.fTrigBase = np.mean(self.currF[-10:])
+            self.currZ,self.currF = self.turnTheAxis(self.currZ,self.currF,self.systemDict['zMaxNm'])
             if self.verbose:
                 print('Current data length: {0}'.format(self.currZ.shape[0]))
                 print('New Z trigger base: {0}nm'.format(self.zTrigBase))
@@ -1250,8 +1265,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def cycleExp(self):
         if self.currentSeg > 0:
-            z,f = self.turnTheAxis(self.currZ[::DEC],self.currF[::DEC],self.systemDict['zMaxNm'])
-            self.plottedSegs[self.currentSeg-1].setData(z,f)
+            self.plottedSegs[self.currentSeg-1].setData(self.currZ[::DEC],self.currF[::DEC])
+            self.ramblingPlot.setData([],[])
         
         self.currentSeg += 1
         if self.currentSeg == len(self.segmentsToDo):
@@ -1275,6 +1290,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
                 self.currentCurve.filename = self.currentCurvePath
                 self.currentCurve.k = self.kNumDbl.value()
+                self.currentCurve.sensitivity = self.kdNumDbl.value()
                 self.currentCurve.save(self.currentCurvePath)
                 self.experimentRds()
                 if self.verbose:
@@ -1287,6 +1303,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                     print('New curve path: {0}'.format(self.currentCurvePath))
                 self.currentCurve.filename = self.currentCurvePath
                 self.currentCurve.k = self.kNumDbl.value()
+                self.currentCurve.sensitivity = self.kdNumDbl.value()
                 self.currentCurve.save(self.currentCurvePath)
                 self.experimentRds()
                 self.doSegment()
@@ -1547,7 +1564,8 @@ class SaveThread(QThread):
                 break
             if len(self.waitingInLineZ)>0:
                 newz = self.waitingInLineZ[0]
-                newf = self.waitingInLineF[0]
+                try: newf = np.array(self.waitingInLineF[0])*-1
+                except: newf = self.waitingInLineF[0]
                 tempSeg = self.segParams[0]
                 curve = self.curves[0]
                 emptySeg = segment.segment(list(newz),list(newf))

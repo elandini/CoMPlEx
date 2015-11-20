@@ -170,6 +170,7 @@ class Skeldata(object):
         self._save = False
         self._overload = False
         self.notify = False
+        self.flushing = False
         self.head = ''
 
     @property
@@ -223,6 +224,9 @@ class Skeldata(object):
         while self.goahead:
             body = self.socket.recv_string()
             data = [float(x) for x in body.strip(self.head).split(':')]
+            if self.flushing:
+                self.flushMemory()
+                self.flushing = False
             if data[3] == 1.0:
                 self.save = True
             else:
