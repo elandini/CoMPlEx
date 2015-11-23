@@ -1400,9 +1400,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.expInProgress = False
         self.xyRes.respReceived.disconnect()
-        self.curveData.goahead = False
-        self.curveData = self.startDataChannel(self.complexEnv,self.curveName)
-        self.curveData.start()
         self.currentSeg = len(self.segmentsToDo)
         self.currentCurveNum = self.curvesToDo
         self.currentPtNum = self.pointsToDo-1
@@ -1412,6 +1409,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.currentSaver.forceStop = forcing
 
         if forcing:
+            self.curveData.goahead = False
+            self.curveData = self.startDataChannel(self.complexEnv,self.curveName)
+            self.curveData.start()
             self.currentSaver.curves = []
             self.currentSaver.waitingInLineF = []
             self.currentSaver.waitingInLineZ = []
