@@ -295,8 +295,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def epzConnect(self):
         
-        self.curveData = epz.QtDATA(self.complexEnv)
-        self.monitData = epz.QtDATA(self.complexEnv,device=self.monitName,tag='DATA')
+        self.curveData = self.startDataChannel(self.complexEnv)
+        self.monitData = self.startDataChannel(self.complexEnv,device=self.monitName)
 
         self.curveIntpr = Interpreter(self.complexEnv)
         self.monitIntpr = Interpreter(self.complexEnv,self.monitName)
@@ -304,18 +304,20 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.xyCmd = epz.CMD(self.complexEnv,self.monitName,self.xyCmdTag)
         
         self.xyRes = epz.QtCMDREC(self.complexEnv,self.monitName,self.xyResTag)
-        
-        self.curveData.notify = True
-        self.curveData.save = False
-        self.monitData.notify = True
-        self.monitData.save = False
-        
-        self.curveData.chunk = CHUNK
-        self.curveData.decimate = DEC
-        self.monitData.chunk = CHUNK
-        self.monitData.decimate = DEC
-        self.curveData.notifyLength = NOTLEN
-        self.monitData.notifyLength = NOTLEN
+
+
+
+    def startDataChannel(self,env,dev=None,tag='DATA'):
+
+        channel = epz.QtDATA(env,dev,tag)
+
+        channel.notify = True
+        channel.save = False
+        channel.chunk = CHUNK
+        channel.decimate = DEC
+        channel.notifyLength = NOTLEN
+
+        return channel
 
 
     def startEpzs(self):
@@ -1255,8 +1257,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def emptyDataQueue(self,q):
         d = q.queue
         data = np.array(d)
-        zv = data[:,1]
-        fv = data[:,2]
+        try:
+            zv = data[:,1]
+            fv = data[:,2]
+        except:
+            return [],[]
         z = self.zVtoNm(zv)
         f = fv/self.deflectionToV
 
@@ -1395,12 +1400,22 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         self.expInProgress = False
         self.xyRes.respReceived.disconnect()
-        self.currentSaver.go = False
-        self.currentSaver.forceStop = forcing
+        self.curveData.goahead = False
+        self.curveData = self.startDataChannel(self.complexEnv,self.curveName)
+        self.curveData.start()
         self.currentSeg = len(self.segmentsToDo)
         self.currentCurveNum = self.curvesToDo
         self.currentPtNum = self.pointsToDo-1
         self.xyCmd.send('S',[])
+
+        self.currentSaver.go = False
+        self.currentSaver.forceStop = forcing
+
+        if forcing:
+            self.currentSaver.curves = []
+            self.currentSaver.waitingInLineF = []
+            self.currentSaver.waitingInLineZ = []
+            self.clearPlot()
 
         self.goToRest()
         
