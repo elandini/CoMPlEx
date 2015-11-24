@@ -161,6 +161,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.expInProgress = False
         self.engaging = False
         self.engaged = False
+        self.working = False
+        self.gotToStop = False
 
         self.speedGroups = {self.appSpeedNumDbl:[True,self.startZNumDbl,self.endZNumDbl],
                             self.retrSpeedNumDbl:[True,self.startZNumDbl,self.endZNumDbl],
@@ -295,8 +297,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def epzConnect(self):
         
-        self.curveData = self.startDataChannel(self.complexEnv)
-        self.monitData = self.startDataChannel(self.complexEnv,device=self.monitName)
+        self.curveData = self.startDataChannel(self.complexEnv,dev = self.curveName)
+        self.monitData = self.startDataChannel(self.complexEnv,dev=self.monitName)
 
         self.curveIntpr = Interpreter(self.complexEnv)
         self.monitIntpr = Interpreter(self.complexEnv,self.monitName)
@@ -1051,6 +1053,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         if self.curvesToDo == 0:
             self.remoteStop()
         self.expInProgress = True
+        self.working = False
+        self.gotToStop = False
         self.segmentsToDo = segments
         self.currentCurve = curve.curve()
         self.zTrigBase = self.zPiezoNumDbl.value()*1000
@@ -1140,7 +1144,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         turnedF = np.array(turnedF)
 
         turnedZ = turningPoint - np.array(turnedZ)
-
+        print('Turned types: {0},{1}'.format(type(turnedZ),type(turnedF)))
         return turnedZ, turnedF
     
     
@@ -1150,7 +1154,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         z,f = self.turnTheAxis(self.zVtoNm(data[1,:]),data[2,:]/self.deflectionToV,self.systemDict['zMaxNm'])
         cX = np.array(self.ramblingPlot.xData)
         cY = np.array(self.ramblingPlot.yData)
-        self.ramblingPlot.setData(np.concatenate((cX,z)),np.concatenate((cY,f)))
+        self.ramblingPlot.setData(np.concatenate((z,cX)),np.concatenate((f,cY)))
 
     
     def doSegment(self):
@@ -1193,7 +1197,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 sleep(SLEEPT)
                 self.curveIntpr.setZrampSign(int(zDeltaSign<0))
         zTrigger = self.zNmtoV(self.zTrigBase + seg['deltaz']*zDeltaSign) if seg['zlim'] is None else self.zNmtoV(seg['zlim'])
-        fTrigger = (self.fTrigBase + abs(seg['flim'])*(-1*directionSign)*self.deflSign)*self.deflectionToV
+        fTrigger = 0 #(self.fTrigBase + abs(seg['flim'])*(-1*directionSign)*self.deflSign)*self.deflectionToV
         tTrigger = seg['holdt']
 
         zTriggerEnabled = int(zTrigger != 0 and seg['type'] != 'Zconst' and seg['type'] != 'Fconst')
@@ -1202,10 +1206,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
         self.curveIntpr.setTriggersSwitch(tTriggerEnabled,zTriggerEnabled,fTriggerEnabled)
         sleep(SLEEPT)
-        #self.curveIntpr.setDeflStopTrig(fTrigger,int((-1*directionSign*self.deflSign)<0))
-        #sleep(SLEEPT)
         self.curveIntpr.setZposStopTrig(zTrigger,int(zDeltaSign<0))
         sleep(SLEEPT)
+        #self.curveIntpr.setDeflStopTrig(fTrigger,int((-1*directionSign*self.deflSign)<0))
+        #sleep(SLEEPT)
         self.curveIntpr.setTimeStopTrig(tTrigger,0)
         sleep(SLEEPT)
 
@@ -1228,30 +1232,42 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
     def segmentDone(self,v):
 
-        if self.verbose:
-            print('Self.curveData \"save\" state: {0}'.format(v))
-        if not v:
-            tempQueue = self.curveData.queue[0]
-            self.currZ,self.currF = self.emptyDataQueue(tempQueue)
-            self.zTrigBase = self.currZ[-1]
-            self.fTrigBase = np.mean(self.currF[-10:])
-            self.currZ,self.currF = self.turnTheAxis(self.currZ,self.currF,self.systemDict['zMaxNm'])
+        if not self.gotToStop:
+            self.working = True
             if self.verbose:
-                print('Current data length: {0}'.format(self.currZ.shape[0]))
-                print('New Z trigger base: {0}nm'.format(self.zTrigBase))
-                print('New F trigger base: {0}pN'.format(self.fTrigBase))
-                print('Current z slice: {0}'.format(self.currZ[:10]))
-                print('Current segment index: {0}'.format(self.currentSeg))
-
-            if self.currentSeg > 0 and self.currentSeg < len(self.segmentsToDo):
+                print('Self.curveData \"save\" state: {0}'.format(v))
+            if not v:
+                tempQueue = self.curveData.queue[0]
+                print('Queue prepared')
+                self.currZ,self.currF = self.emptyDataQueue(tempQueue)
+                print('Queue emptied')
+                print('Output types: {0},{1}'.format(type(self.currZ),type(self.currF)))
+                try:
+                    self.zTrigBase = self.currZ[-1]
+                    self.fTrigBase = np.mean(self.currF[-10:])
+                    self.currZ,self.currF = self.turnTheAxis(self.currZ,self.currF,self.systemDict['zMaxNm'])
+                    print('Turned outputs types: {0},{1}'.format(type(self.currZ),type(self.currF)))
+                except:
+                    pass
                 if self.verbose:
-                    print('Adding the current segment to the saver stack')
-                self.currentSaver.waitingInLineZ.append(self.currZ)
-                self.currentSaver.waitingInLineF.append(self.currF)
-                self.currentSaver.segParams.append(self.segmentsToDo[self.currentSeg])
-                self.currentSaver.curves.append(self.currentCurve)
-            del self.curveData.queue[0]
-            self.cycleExp()
+                    print('Current data length: {0}'.format(self.currZ.shape[0]))
+                    print('New Z trigger base: {0}nm'.format(self.zTrigBase))
+                    print('New F trigger base: {0}pN'.format(self.fTrigBase))
+                    print('Current z slice: {0}'.format(self.currZ[:10]))
+                    print('Current segment index: {0}'.format(self.currentSeg))
+
+                if self.currentSeg > 0 and self.currentSeg < len(self.segmentsToDo):
+                    if self.verbose:
+                        print('Adding the current segment to the saver stack')
+                    self.currentSaver.waitingInLineZ.append(self.currZ)
+                    self.currentSaver.waitingInLineF.append(self.currF)
+                    self.currentSaver.segParams.append(self.segmentsToDo[self.currentSeg])
+                    self.currentSaver.curves.append(self.currentCurve)
+                del self.curveData.queue[0]
+        else:
+            pass
+        self.working = False
+        self.cycleExp()
 
 
     def emptyDataQueue(self,q):
@@ -1261,7 +1277,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             zv = data[:,1]
             fv = data[:,2]
         except:
-            return [],[]
+            return np.array([]),np.array([])
         z = self.zVtoNm(zv)
         f = fv/self.deflectionToV
 
@@ -1269,9 +1285,12 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         
     def cycleExp(self):
+
         if self.currentSeg > 0:
-            self.plottedSegs[self.currentSeg-1].setData(self.currZ[::DEC],self.currF[::DEC])
-            self.ramblingPlot.setData([],[])
+            try: 
+                self.plottedSegs[self.currentSeg-1].setData(self.currZ[::DEC],self.currF[::DEC])
+                self.ramblingPlot.setData([],[])
+            except: return
         
         self.currentSeg += 1
         if self.currentSeg == len(self.segmentsToDo):
@@ -1409,13 +1428,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.currentSaver.forceStop = forcing
 
         if forcing:
-            self.curveData.goahead = False
-            self.curveData = self.startDataChannel(self.complexEnv,self.curveName)
-            self.curveData.start()
-            self.currentSaver.curves = []
-            self.currentSaver.waitingInLineF = []
-            self.currentSaver.waitingInLineZ = []
-            self.clearPlot()
+            stopper = StopperThread(self)
+            stopper.start()
 
         self.goToRest()
         
@@ -1604,4 +1618,29 @@ class SaveThread(QThread):
             sleep(0.01)
             
             
-            
+
+class StopperThread(QThread):
+
+    def __init__(self, parent):
+
+        self.parent = parent
+        self.go = True
+
+
+    def run(self):
+
+        while self.go:
+            if self.parent.working:
+                sleep(0.1)
+            else:
+                self.parent.gotToStop = True
+                try: self.curveData.stateChanged.disconnect()
+                except: pass
+                self.parent.curveData.goahead = False
+                self.parent.curveData = self.startDataChannel(self.complexEnv,self.curveName)
+                self.parent.curveData.start()
+                self.parent.currentSaver.curves = []
+                self.parent.currentSaver.waitingInLineF = []
+                self.parent.currentSaver.waitingInLineZ = []
+                self.parent.clearPlot()
+                self.go = False
