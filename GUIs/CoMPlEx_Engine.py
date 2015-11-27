@@ -638,7 +638,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         stdSegments.append(seg)
         
         if self.holdTimeNumDbl.value()>0:
-            print('Seg2')
             seg2 = {}
             seg2['zlim'] = 0
             seg2['deltaz'] = None
@@ -654,7 +653,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         
         seg3['zlim'] = self.startZNumDbl.value()
         seg3['deltaz'] = None
-        seg3['flim'] = self.maxFNumDbl.minimum()
+        seg3['flim'] = 0
         seg3['speed'] = self.retrSpeedNumDbl.value()
         seg3['direction'] = 2
         seg3['type'] = types[seg['direction']]
@@ -1144,7 +1143,6 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         turnedF = np.array(turnedF)
 
         turnedZ = turningPoint - np.array(turnedZ)
-        print('Turned types: {0},{1}'.format(type(turnedZ),type(turnedF)))
         return turnedZ, turnedF
     
     
@@ -1171,6 +1169,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         seg = self.segmentsToDo[self.currentSeg]
         stdOrCust = self.channelCmbBox.currentText().find('FvsD') != -1
         rds = t6t = 0
+        bareRetract = seg['flim'] == 0 and seg['direction'] == 2
         if seg['direction'] == 5:
             self.cycleExp()
         directionSign = (-1)**(int(seg['direction'] == 3)) # Direction 3 == Approaching => well done!
@@ -1179,7 +1178,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             if self.verbose:
                 print('\nDelta z to start Position: {0}'.format(abs(startPos-self.zTrigBase)))
             if abs(startPos-self.zTrigBase)<ZSENS:
-                seg['holdt'] = 1*TSCALE
+                seg['holdt'] = 0.1*TSCALE
                 seg['type'] = 'Zconst'
             else:
                 rds,t6t = self.speedToDacStep(seg['speed'],startPos,self.zTrigBase)
@@ -1197,19 +1196,26 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 sleep(SLEEPT)
                 self.curveIntpr.setZrampSign(int(zDeltaSign<0))
         zTrigger = self.zNmtoV(self.zTrigBase + seg['deltaz']*zDeltaSign) if seg['zlim'] is None else self.zNmtoV(seg['zlim'])
-        fTrigger = 0 #(self.fTrigBase + abs(seg['flim'])*(-1*directionSign)*self.deflSign)*self.deflectionToV
+        fTrigger = (self.fTrigBase + abs(seg['flim'])*(-1*directionSign)*self.deflSign)*self.deflectionToV
+        if fTrigger >= self.deflVmax: ftrigger = self.deflVmax-abs(self.deflVmax/100.0)
+        if fTrigger <= self.deflVmin: ftrigger = self.deflVmin+abs(self.deflVmax/100.0)
+        
         tTrigger = seg['holdt']
 
         zTriggerEnabled = int(zTrigger != 0 and seg['type'] != 'Zconst' and seg['type'] != 'Fconst')
-        fTriggerEnabled = 0 #int(fTrigger != 0 and seg['direction'] != 4 and seg['direction'] > 1)
+        fTriggerEnabled = int(fTrigger != 0 and seg['direction'] != 4 and seg['direction'] > 1 and not bareRetract)
         tTriggerEnabled = int(seg['holdt'] > 0)
+
+        if seg['direction'] == 4:
+            self.ftrigger = self.deflVmin
+            self.fTriggerEnabled = 0
 
         self.curveIntpr.setTriggersSwitch(tTriggerEnabled,zTriggerEnabled,fTriggerEnabled)
         sleep(SLEEPT)
         self.curveIntpr.setZposStopTrig(zTrigger,int(zDeltaSign<0))
         sleep(SLEEPT)
-        #self.curveIntpr.setDeflStopTrig(fTrigger,int((-1*directionSign*self.deflSign)<0))
-        #sleep(SLEEPT)
+        self.curveIntpr.setDeflStopTrig(fTrigger,int((-1*directionSign*self.deflSign)<0))
+        sleep(SLEEPT)
         self.curveIntpr.setTimeStopTrig(tTrigger,0)
         sleep(SLEEPT)
 
@@ -1238,15 +1244,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 print('Self.curveData \"save\" state: {0}'.format(v))
             if not v:
                 tempQueue = self.curveData.queue[0]
-                print('Queue prepared')
                 self.currZ,self.currF = self.emptyDataQueue(tempQueue)
-                print('Queue emptied')
-                print('Output types: {0},{1}'.format(type(self.currZ),type(self.currF)))
                 try:
                     self.zTrigBase = self.currZ[-1]
                     self.fTrigBase = np.mean(self.currF[-10:])
                     self.currZ,self.currF = self.turnTheAxis(self.currZ,self.currF,self.systemDict['zMaxNm'])
-                    print('Turned outputs types: {0},{1}'.format(type(self.currZ),type(self.currF)))
                 except:
                     pass
                 if self.verbose:
@@ -1267,7 +1269,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         else:
             pass
         self.working = False
-        self.cycleExp()
+        if not v: self.cycleExp()
 
 
     def emptyDataQueue(self,q):
@@ -1428,8 +1430,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.currentSaver.forceStop = forcing
 
         if forcing:
-            stopper = StopperThread(self)
-            stopper.start()
+            self.stopper = StopperThread(self)
+            self.stopper.start()
 
         self.goToRest()
         
@@ -1480,7 +1482,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.updateSegBtn.clicked.connect(self.updateSeg)
         self.showZTravelBtn.clicked.connect(self.showDial)
         self.playBtn.clicked.connect(self.remotePlay)
-        self.stopBtn.clicked.connect(self.remoteStop)
+        self.stopBtn.clicked.connect(lambda: self.remoteStop(True))
         
         # Epz Parameters buttons connections
         
@@ -1622,7 +1624,7 @@ class SaveThread(QThread):
 class StopperThread(QThread):
 
     def __init__(self, parent):
-
+        super(StopperThread,self).__init__()
         self.parent = parent
         self.go = True
 
@@ -1634,10 +1636,13 @@ class StopperThread(QThread):
                 sleep(0.1)
             else:
                 self.parent.gotToStop = True
-                try: self.curveData.stateChanged.disconnect()
+                try: self.parent.curveData.stateChanged.disconnect()
                 except: pass
                 self.parent.curveData.goahead = False
-                self.parent.curveData = self.startDataChannel(self.complexEnv,self.curveName)
+                self.parent.curveData = self.parent.startDataChannel(self.parent.complexEnv,self.parent.curveName)
+                self.parent.curveData.yDataReceived.connect(self.parent.sendZ)
+                self.parent.curveData.zDataReceived.connect(self.parent.deflAvg)
+                sleep(0.1)
                 self.parent.curveData.start()
                 self.parent.currentSaver.curves = []
                 self.parent.currentSaver.waitingInLineF = []
