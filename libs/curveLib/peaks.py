@@ -1,5 +1,4 @@
 import numpy as np
-from fitLib import *
 import os
 from os import makedirs
 from os.path import split, join, splitext, exists, isfile
@@ -125,7 +124,7 @@ class peak(object):
             return self.getHeight() > p2.getHeight()
         return self.getHeight() > p2
     
-    
+    '''
     def fitGrowth(self,fitModel = None):
         
         if fitModel == None:
@@ -135,7 +134,7 @@ class peak(object):
         gZ,gF = self.getGrowth()
         
         self.fit = genericFit(gZ,gF,fitModel)
-        
+    '''    
     
     def savePeak(self,filePath):
         if splitext(filePath)[1] != '.pkf':
@@ -342,7 +341,7 @@ class Peaks(object):
         for l in pf.readlines():
             if l.find('#') != -1:
                 continue
-	    if l[0] == '\n':
+            if l[0] == '\n':
                 continue
             dataChunk = np.array([float(d) for d in l.split('\t')])
             data.append(dataChunk)

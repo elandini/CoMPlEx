@@ -1,6 +1,6 @@
 import numpy as np
-import mvobject
-from peaks import *
+import libs.curveLib.mvobject as mvobject
+from libs.curveLib.peaks import *
 
 class segment(mvobject.mvobject):
     def __init__(self,x,y):   
@@ -14,7 +14,7 @@ class segment(mvobject.mvobject):
         defaults = {'direction':'far','speed':1.0,'k':1.0,'type':'Vconst'}
         self.parseConfig(defaults,'Segment')
         if len(x)==0:
-            return False
+            return
          
         if x[0]>x[-1]:
             self.direction='near'
@@ -53,4 +53,4 @@ class segment(mvobject.mvobject):
         
         
 if __name__ == "__main__":
-    print 'not for direct use'
+    print('not for direct use')

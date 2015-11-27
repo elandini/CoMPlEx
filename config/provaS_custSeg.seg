@@ -1,0 +1,45 @@
+[SEGMENT0]
+holdt = 0.0
+speed = 0.0
+deltaz = 4.0
+zlim = None
+type = Vconst
+direction = 3
+flim = 0.0
+
+[SEGMENT1]
+holdt = 0.0
+speed = 0.0
+deltaz = 3.0
+zlim = None
+type = Vconst
+direction = 2
+flim = 0.0
+
+[SEGMENT2]
+holdt = 2000000.0
+speed = 0.0
+deltaz = 0.0
+zlim = None
+type = Fconst
+direction = 1
+flim = 0.0
+
+[SEGMENT3]
+holdt = 1000000.0
+speed = 0.0
+deltaz = 0.0
+zlim = None
+type = Zconst
+direction = 0
+flim = 0.0
+
+[SEGMENT4]
+holdt = 2000000.0
+speed = 0.0
+deltaz = 0.0
+zlim = None
+type = Fconst
+direction = 1
+flim = 0.0
+

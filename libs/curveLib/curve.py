@@ -1,5 +1,5 @@
-import mvobject
-import segment
+import libs.curveLib.mvobject as mvobject
+import libs.curveLib.segment
 import logging
 import importlib
 import os
@@ -15,7 +15,9 @@ class curve(mvobject.mvobject):
         #  F pN
         defaults = {'fzfd':False,'k':1.0, 'relevant':True, 'sensitivity': 50.0}
         self.parseConfig(defaults,'Curve')
-
+        
+        self.savedSeg = 0
+        
         self.filename = ''
         self.basename = ''
         self.segments=[]
@@ -70,22 +72,23 @@ class curve(mvobject.mvobject):
         for s in segments:
             self.append(s)
 
-    def save(self,fname=None):
+    def save(self,fname=None,newly = False):
         """
         Save the curve in a TXT format compatible with the text export format of JPK IP and DP programs
         """
         if fname == None:
             return False
-
+        
         out_file = open(str(fname),"w")
         out_file.write("# TEXT EXPORT\n")
         out_file.write("# springConstant: {0}\n".format(self.k))
+        out_file.write("# sensitivity: {0}\n".format(self.sensitivity))
         out_file.write("# units: m N\n")    
         if self.fzfd:
             out_file.write("# fzfd: 1\n")
         else:
             out_file.write("# fzfd: 0\n")
-        out_file.write("#\n")
+        out_file.write("#\n")  
         i=0
         for p in self.segments:
             if i != 0:
@@ -103,6 +106,29 @@ class curve(mvobject.mvobject):
             i+=1
         out_file.close()
         return True
+    
+    
+    def appendToFile(self,p,fname=None,appendToCurve=True):
+        
+        path = self.filename if fname is None else fname
+        out_file = open(str(path),"a")
+        out_file.write("#\n")
+        i = len(self)
+        out_file.write("# segmentIndex: {0}\n".format(i))
+        ts = 'extend'
+        if p.direction == 'far':
+            ts = 'retract'
+        out_file.write("# segment: {0}\n".format(ts))
+        out_file.write("# columns: distance force\n")
+        out_file.write("# speed: {0}\n".format(p.speed))
+        for i in range(len(p.z)):
+            out_file.write("{0} {1}\n".format(p.z[i]*1e-9, -1.0*p.f[i]*1e-12))
+        
+        if appendToCurve:
+            self.segments.append(p)
+
+        out_file.close()
+    
     
     def changeK(self,newK):
         
@@ -159,5 +185,5 @@ class curve(mvobject.mvobject):
             
     
 if __name__ == "__main__":
-    print 'not for direct use'
+    print('not for direct use')
         
