@@ -1096,8 +1096,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                     continue
             else:
                 break
-        self.currentCurve.k = self.kNumDbl.value()
-        self.currentCurve.sensitivity = self.kdNumDbl.value()
+        self.currentCurve.k = self.kNumDbl.value()/1000
+        self.currentCurve.sensitivity = self.kdNumDbl.value()/1e9
         self.currentCurve.filename = self.currentCurvePath
         self.currentCurve.save(self.currentCurvePath)
         self.mapPoints = self.createSpiral(self.xStepNumMapNum.value(), self.yStepNumMapNum.value(), self.pointsToDo)
@@ -1315,8 +1315,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 self.currentCurveNum = 0
                 self.currentCurvePath = join(self.curveDir,(self.baseCurveName+'_pt'+str(self.currentPtNum)+'_c'+str(self.currentCurveNum)+'.txt'))
                 self.currentCurve.filename = self.currentCurvePath
-                self.currentCurve.k = self.kNumDbl.value()
-                self.currentCurve.sensitivity = self.kdNumDbl.value()
+                self.currentCurve.k = self.kNumDbl.value()/1000
+                self.currentCurve.sensitivity = self.kdNumDbl.value()/1e+9
                 self.currentCurve.save(self.currentCurvePath)
                 self.experimentRds()
                 if self.verbose:
@@ -1601,7 +1601,7 @@ class SaveThread(QThread):
                 curve = self.curves[0]
                 emptySeg = segment.segment(list(newz),list(newf))
                 emptySeg.k = self.parent.kNumDbl.value()
-                emptySeg.speed = tempSeg['speed']
+                emptySeg.speed = tempSeg['speed']/1e9
                 emptySeg.direction = 'hold' if tempSeg['direction'] < 2 else ('far' if tempSeg['direction'] == 2 else 'near')
                 emptySeg.type = tempSeg['type']
                 
