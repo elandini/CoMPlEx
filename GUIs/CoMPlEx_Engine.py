@@ -1600,7 +1600,7 @@ class SaveThread(QThread):
                 tempSeg = self.segParams[0]
                 curve = self.curves[0]
                 emptySeg = segment.segment(list(newz),list(newf))
-                emptySeg.k = self.parent.kNumDbl.value()
+                emptySeg.k = self.parent.kNumDbl.value()/1000
                 emptySeg.speed = tempSeg['speed']/1e9
                 emptySeg.direction = 'hold' if tempSeg['direction'] < 2 else ('far' if tempSeg['direction'] == 2 else 'near')
                 emptySeg.type = tempSeg['type']
