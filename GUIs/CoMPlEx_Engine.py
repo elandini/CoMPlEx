@@ -252,8 +252,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.calibStimZOffsetNumDbl.setMinimum(zm)
         self.zPiezoNumDbl.setMinimum(zm/1000.0)
         self.zPiezoNumDbl.setMaximum(zM/1000.0)
-        self.zPiezoProg.setMinimum(zm/1000.0)
-        self.zPiezoProg.setMaximum(zM/1000.0)
+        self.zPiezoProg.setMinimum(zm)#/1000.0)
+        self.zPiezoProg.setMaximum(zM)#/1000.0)
+        self.zPiezoProg.set
         self.nearFar = (-1)**(int(parser.get('PIEZO','nearfar')=='0'))
         self.zPiezoProg.setInvertedAppearance(int(parser.get('PIEZO','movobj'))==0)
         maxV = float(parser.get('PIEZO','maxspeed'))
@@ -269,11 +270,11 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         self.deflVMonToVQPD = lambda x: ((x-dmm)/(dmM-dmm)*(dM-dm)+dm)
         self.sumVMonToVQPD = lambda x: ((x-0)/(dmM-0)*(dM-dm)+0)
 
-        self.deflPosProg.setMaximum(int(dM))
-        self.deflNegProg.setMaximum(int(abs(dm)))
-        self.torsPosProg.setMaximum(int(dM))
-        self.torsNegProg.setMaximum(int(abs(dm)))
-        self.sumProg.setMaximum(int(dM))
+        self.deflPosProg.setMaximum(int(dM)*1000)
+        self.deflNegProg.setMaximum(int(abs(dm))*1000)
+        self.torsPosProg.setMaximum(int(dM)*1000)
+        self.torsNegProg.setMaximum(int(abs(dm))*1000)
+        self.sumProg.setMaximum(int(dM)*1000)
 
         self.deflVmax = float(self.privates['dvmax'])
         self.deflVmin = float(self.privates['dvmin'])
@@ -535,6 +536,9 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
     def getDataDir(self):
         
         dir = QFileDialog.getExistingDirectory(self, 'Select a directory...\n')
+        if self.verbose:
+            print('Data directory: {0}'.format(dir))
+            print('Default Data directory: {0}'.format(self.curveDir))
         self.dirLine.setText(dir)
     
     
@@ -543,14 +547,15 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         culprit = self.sender()
         newVal = culprit.value()
         
-        self.zPiezoProg.setValue(newVal)
+        self.zPiezoProg.setValue(newVal*1000)
         
         
     def qpdMonitProgs(self):
         
         culprit = self.sender()
-        newVal = culprit.value() # self.sumVMonToVQPD(culprit.value()) if culprit is self.sumNumDbl else self.deflVMonToVQPD(culprit.value())
-        
+        newValCd = culprit.value() # self.sumVMonToVQPD(culprit.value()) if culprit is self.sumNumDbl else self.deflVMonToVQPD(culprit.value())
+        newVal = newValCd*1000
+
         if culprit == self.deflNumDbl:
             if newVal < 0:
                 self.deflNegProg.setValue(abs(newVal))
@@ -569,7 +574,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 currPal = self.deflNumDbl.palette()
                 currPal.setColor(QPalette.Background,RED)
                 self.deflNumDbl.setPalette(currPal)
-            self.laserSpot.setData(self.laserSpot.xData,[newVal])
+            self.laserSpot.setData(self.laserSpot.xData,[newValCd])
         elif culprit == self.torsNumDbl:
             if newVal < 0:
                 self.torsNegProg.setValue(abs(newVal))
@@ -580,10 +585,10 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             else:
                 self.torsNegProg.setValue(0)
                 self.torsPosProg.setValue(0)
-            self.laserSpot.setData([newVal],self.laserSpot.yData)
+            self.laserSpot.setData([newValCd],self.laserSpot.yData)
         else:
             self.sumProg.setValue(newVal)
-            self.laserSpot.setSymbolBrush(QColor(int(25.5*newVal),0,0,128))
+            self.laserSpot.setSymbolBrush(QColor(int(25.5*newValCd),0,0,128))
 
 
     def sendZ(self,v):
@@ -1197,8 +1202,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
                 self.curveIntpr.setZrampSign(int(zDeltaSign<0))
         zTrigger = self.zNmtoV(self.zTrigBase + seg['deltaz']*zDeltaSign) if seg['zlim'] is None else self.zNmtoV(seg['zlim'])
         fTrigger = (self.fTrigBase + abs(seg['flim'])*(-1*directionSign)*self.deflSign)*self.deflectionToV
-        if fTrigger >= self.deflVmax: ftrigger = self.deflVmax-abs(self.deflVmax/100.0)
-        if fTrigger <= self.deflVmin: ftrigger = self.deflVmin+abs(self.deflVmax/100.0)
+        if fTrigger >= self.deflVmax: fTrigger = self.deflVmax-abs(self.deflVmax/100.0)
+        if fTrigger <= self.deflVmin: fTrigger = self.deflVmin+abs(self.deflVmax/100.0)
         
         tTrigger = seg['holdt']
 
@@ -1207,7 +1212,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
         tTriggerEnabled = int(seg['holdt'] > 0)
 
         if seg['direction'] == 4:
-            self.ftrigger = self.deflVmin
+            self.fTrigger = self.deflVmin
             self.fTriggerEnabled = 0
 
         self.curveIntpr.setTriggersSwitch(tTriggerEnabled,zTriggerEnabled,fTriggerEnabled)
@@ -1226,6 +1231,8 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
             print('Segment type: {0}'.format(seg['type']))
             print('Segment speed: {0}'.format(seg['speed']))
             print('Segment force limit: {0}'.format(seg['flim']))
+            print('Deflection trigger base: {0}'.format(self.fTrigBase))
+            print('Real deflectio trigger: {0}'.format(fTrigger))
             print('Segment direction sign: {0}'.format(directionSign))
             print('Segment z delta sign: {0}'.format(zDeltaSign))
             print('Z trigger: {0}V, Enabled: {1}, Sign: {2}'.format(zTrigger,zTriggerEnabled==1,int(zDeltaSign<0)))
@@ -1449,7 +1456,7 @@ class CoMPlEx_main(QMainWindow,Ui_CoMPlEx_GUI):
 
 
     def sillyMonitor(self,v):
-        print('Defl from adc: {0}'.format(v))
+        if self.verbose: print('Defl from adc: {0}'.format(v))
         
         
     def actionNdocksConnections(self):
