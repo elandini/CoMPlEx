@@ -19,6 +19,8 @@ except:
 
 if __name__ == '__main__':
     
+    if VERBOSE:
+        print("Starting")
     app = QApplication(sys.argv)
     mainWin = CoMPlEx_main(verbose = VERBOSE)
     mainWin.show()
